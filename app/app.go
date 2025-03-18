@@ -65,7 +65,7 @@ func Execute(ctx context.Context, cfg Configer) error {
 
 	daemon.RootCmd().AddGroup(&cobra.Group{ID: "maintain", Title: "Maintain Commands"})
 	// Maintain Cmds
-	daemon.AddCommand(db.MaintainCommand(cfg.GetDB(), models...)...)
+	daemon.AddCommand(db.MaintainCommand(cfg.GetDB())...)
 	daemon.AddCommand(cmds...)
 	daemon.Execute(func(cmd *cobra.Command, _ []string) error {
 		os.MkdirAll("logs", 0755)

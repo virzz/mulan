@@ -38,7 +38,7 @@ func Register(model ...Modeler) {
 }
 
 func Models() []any {
-	var result = make([]any, 0, len(models))
+	var result = make([]any, len(models))
 	for i, model := range models {
 		result[i] = model
 	}

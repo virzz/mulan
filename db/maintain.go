@@ -14,7 +14,7 @@ import (
 
 const (
 	dropPgSQL = `DROP DATABASE IF EXISTS {{.Name}};
-DO $$ BEGIN IF EXISTS ( SELECT 1 FROM pg_roles WHERE rolname = 'webx' ) THEN REVOKE ALL PRIVILEGES ON SCHEMA public FROM {{.User}} ; REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {{.User}}; END IF ; END $$ ;
+DO $$ BEGIN IF EXISTS ( SELECT 1 FROM pg_roles WHERE rolname = '{{.User}}' ) THEN REVOKE ALL PRIVILEGES ON SCHEMA public FROM {{.User}};REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {{.User}};REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM {{.User}};REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM {{.User}}; END IF ; END $$ ;
 DROP USER IF EXISTS {{.User}};
 DROP ROLE IF EXISTS {{.User}};`
 	createPgSQL = `CREATE ROLE {{.User}} WITH LOGIN PASSWORD '{{.Pass}}';
@@ -79,7 +79,7 @@ func parseSql(content string, data any) (string, error) {
 	return buf.String(), nil
 }
 
-func MaintainCommand(cfg *Config, models ...any) []*cobra.Command {
+func MaintainCommand(cfg *Config) []*cobra.Command {
 	createCmd := &cobra.Command{
 		GroupID: "maintain",
 		Use:     "create",
@@ -148,7 +148,7 @@ func MaintainCommand(cfg *Config, models ...any) []*cobra.Command {
 			if err := Init(cfg); err != nil {
 				return err
 			}
-			return Migrate(models...)
+			return Migrate(Models()...)
 		},
 	}
 
@@ -161,7 +161,7 @@ func MaintainCommand(cfg *Config, models ...any) []*cobra.Command {
 				return err
 			}
 			force, _ := cmd.Flags().GetBool("force")
-			for _, m := range models {
+			for _, m := range Models() {
 				if m, ok := m.(Modeler); ok {
 					if force {
 						if err = R().Exec("TRUNCATE TABLE " + m.TableName() + ";").Error; err != nil {
