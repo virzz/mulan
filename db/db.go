@@ -63,7 +63,9 @@ func connect(cfg *Config) (err error) {
 	var dialector gorm.Dialector
 	switch cfg.Type {
 	case DBMySQL:
-		dialector = DialectorMySQL(cfg)
+		dialector = DialectorMySQL(cfg, false)
+	case DBMariaDB:
+		dialector = DialectorMySQL(cfg, true)
 	case DBPgSQL:
 		fallthrough
 	default:

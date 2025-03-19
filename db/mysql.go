@@ -11,7 +11,7 @@ import (
 	"github.com/virzz/vlog"
 )
 
-func DialectorMySQL(cfg *Config) gorm.Dialector {
+func DialectorMySQL(cfg *Config, isMariadb bool) gorm.Dialector {
 	addr := cfg.Host
 	if addr == "" {
 		addr = "localhost"
@@ -37,10 +37,16 @@ func DialectorMySQL(cfg *Config) gorm.Dialector {
 	if cfg.Debug {
 		vlog.Info("Connecting to MySQL", "dsn", dsn)
 	}
-	return mysql.New(mysql.Config{
+	conf := mysql.Config{
 		DSN:                       dsn,
 		DefaultStringSize:         255,  // string 类型字段的默认长度
 		DontSupportRenameIndex:    true, // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
 		SkipInitializeWithVersion: true, // 根据当前 MySQL 版本自动配置
-	})
+	}
+	// FIX: func (j JSONSlice[T]) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+	// https://github.com/go-gorm/datatypes/blob/71f06d7c55bf63dd0794151230167514372681b2/json_type.go#L137
+	if isMariadb && conf.ServerVersion == "" {
+		conf.ServerVersion = "MariaDB"
+	}
+	return mysql.New(conf)
 }
