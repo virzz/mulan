@@ -16,7 +16,7 @@ require (
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
-	github.com/virzz/daemon/v2 v2.5.7
+	github.com/virzz/daemon/v2 v2.5.8
 	github.com/virzz/vlog v0.0.0-20250311075008-673e0847d952
 	golang.org/x/crypto v0.36.0
 	golang.org/x/image v0.25.0
