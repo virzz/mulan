@@ -132,8 +132,6 @@ github.com/prometheus/client_model v0.6.1 h1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p
 github.com/prometheus/client_model v0.6.1/go.mod h1:OrxVMOVHjw3lKMa8+x6HeMGkHMQyHDk9E3jmP2AmGiY=
 github.com/prometheus/common v0.63.0 h1:YR/EIY1o3mEFP/kZCD7iDMnLPlGyuU2Gb3HIcXnA98k=
 github.com/prometheus/common v0.63.0/go.mod h1:VVFF/fBIoToEnWRVkYoXEkq3R3paCoxG9PXP74SnV18=
-github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
-github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 github.com/prometheus/procfs v0.16.0 h1:xh6oHhKwnOJKMYiYBDWmkHqQPyiY40sny36Cmx2bbsM=
 github.com/prometheus/procfs v0.16.0/go.mod h1:8veyXUu3nGP7oaCxhX6yeaM5u4stL2FeMXnCqhDthZg=
 github.com/redis/go-redis/v9 v9.7.1 h1:4LhKRCIduqXqtvCUlaq9c8bdHOkICjDMrr1+Zb3osAc=
@@ -173,8 +171,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/virzz/daemon/v2 v2.5.7 h1:GlVUu6BdoI2sYISOh9CZCkNOW+ZFWxFcMU8/IRJyIfM=
-github.com/virzz/daemon/v2 v2.5.7/go.mod h1:WZZilhbd6L2Tmy+MUQya+pcnbdgUQVwSMcgCaQ8RMYg=
+github.com/virzz/daemon/v2 v2.5.8 h1:FqC+6EWmXKfjg9wTkkghUlyK83EANPl1++Ux6f3J/hc=
+github.com/virzz/daemon/v2 v2.5.8/go.mod h1:WZZilhbd6L2Tmy+MUQya+pcnbdgUQVwSMcgCaQ8RMYg=
 github.com/virzz/vlog v0.0.0-20250311075008-673e0847d952 h1:s56FFg/FcUueGNHFntfcl6MPk1Q0r/f8skhyX/Wj7Ng=
 github.com/virzz/vlog v0.0.0-20250311075008-673e0847d952/go.mod h1:7LUh2AQGC5E6MLufN8IXa5r/kp1fTix9tAocp9EoRp4=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
