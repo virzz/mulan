@@ -25,15 +25,15 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {{.User}};
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {{.User}};
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO {{.User}};`
 
-	dropMySQL   = "DROP DATABASE IF EXISTS `{{.Name}}`;\nDROP USER '{{.User}}'@'%';"
-	createMySQL = "CREATE USER IF NOT EXISTS '{{.User}}'@'%' identified by '{{.Pass}}';\nCREATE DATABASE IF NOT EXISTS `{{.Name}}` CHARACTER SET = 'utf8mb4' COLLATE = 'utf8mb4_unicode_ci';\nGRANT ALL ON `{{.Name}}`.* to '{{.User}}'@'%';\nFLUSH PRIVILEGES;"
+	dropMySQL   = "DROP DATABASE IF EXISTS `{{.Name}}`;\nDROP USER IF EXISTS '{{.User}}'@'{{.Host}}';"
+	createMySQL = "CREATE USER IF NOT EXISTS '{{.User}}'@'{{.Host}}' identified by '{{.Pass}}';\nCREATE DATABASE IF NOT EXISTS `{{.Name}}` CHARACTER SET = 'utf8mb4' COLLATE = 'utf8mb4_unicode_ci';\nGRANT ALL ON `{{.Name}}`.* to '{{.User}}'@'{{.Host}}';\nFLUSH PRIVILEGES;"
 
 	hostPgSQL = `127.0.0.1:5432;/tmp;/var/run/postgresql/`
 	hostMySQL = `127.0.0.1:3306;/tmp/mysql.sock;/run/mysqld/mysqld.sock;/var/run/mysqld/mysqld.sock;/var/lib/mysql/mysql.sock`
 )
 
 func tryConnect(cmd *cobra.Command, typ DBType) (err error) {
-	cfg := &Config{Debug: true}
+	cfg := &Config{Debug: true, Type: typ}
 	cfg.Name, _ = cmd.Flags().GetString("name")
 	cfg.User, _ = cmd.Flags().GetString("user")
 	cfg.Pass, _ = cmd.Flags().GetString("pass")

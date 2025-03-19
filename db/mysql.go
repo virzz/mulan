@@ -38,9 +38,8 @@ func DialectorMySQL(cfg *Config) gorm.Dialector {
 		vlog.Info("Connecting to MySQL", "dsn", dsn)
 	}
 	return mysql.New(mysql.Config{
-		DSN:                       dsn,
-		DefaultStringSize:         255,  // string 类型字段的默认长度
-		DontSupportRenameIndex:    true, // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
-		SkipInitializeWithVersion: true, // 根据当前 MySQL 版本自动配置
+		DSN:                    dsn,
+		DefaultStringSize:      255,
+		DontSupportRenameIndex: true,
 	})
 }
