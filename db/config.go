@@ -34,8 +34,9 @@ type ConnConfig struct {
 type DBType string
 
 const (
-	DBMySQL DBType = "mysql"
-	DBPgSQL DBType = "postgres"
+	DBMySQL   DBType = "mysql"
+	DBMariaDB DBType = "mariadb"
+	DBPgSQL   DBType = "postgres"
 )
 
 type Config struct {
