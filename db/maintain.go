@@ -32,15 +32,13 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO {{.User}};`
 	hostMySQL = `127.0.0.1:3306;/tmp/mysql.sock;/run/mysqld/mysqld.sock;/var/run/mysqld/mysqld.sock;/var/lib/mysql/mysql.sock`
 )
 
-func tryConnect(cmd *cobra.Command) (err error) {
+func tryConnect(cmd *cobra.Command, typ DBType) (err error) {
 	cfg := &Config{Debug: true}
 	cfg.Name, _ = cmd.Flags().GetString("name")
 	cfg.User, _ = cmd.Flags().GetString("user")
 	cfg.Pass, _ = cmd.Flags().GetString("pass")
 	cfg.Host, _ = cmd.Flags().GetString("host")
 	cfg.Port, _ = cmd.Flags().GetInt("port")
-	_type, _ := cmd.Flags().GetString("type")
-	cfg.Type = DBType(_type)
 	// 自定义 Host 连接
 	if cfg.Host != "" {
 		if err = Init(cfg, true); err == nil {
@@ -85,12 +83,14 @@ func MaintainCommand(cfg *Config) []*cobra.Command {
 		Use:     "create",
 		Short:   "Create database (Create User,Database and Grant Privileges)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := tryConnect(cmd)
+			_type, _ := cmd.Flags().GetString("type")
+			if _type != "" {
+				cfg.Type = DBType(_type)
+			}
+			err := tryConnect(cmd, cfg.Type)
 			if err != nil {
 				return err
 			}
-			_type, _ := cmd.Flags().GetString("type")
-			cfg.Type = DBType(_type)
 			force, _ := cmd.Flags().GetBool("force")
 			var dropSql, createSql string
 			switch cfg.Type {
