@@ -15,6 +15,10 @@ type (
 
 type Routers []RegisterFunc
 
+func (rs *Routers) Handle(method, path string, f gin.HandlerFunc) {
+	*rs = append(*rs, func(g *gin.RouterGroup) { g.Handle(method, path, f) })
+}
+
 func (rs *Routers) Register(f RegisterFunc) {
 	*rs = append(*rs, f)
 }
