@@ -96,10 +96,6 @@ func New(conf *Config, routers Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 			vlog.Error("404 Not Found", "method", c.Request.Method, "path", c.Request.RequestURI, "body", string(buf))
 		}
 	})
-	fmt.Fprintln(os.Stderr, "HTTP Server Routes:")
-	for _, item := range engine.Routes() {
-		fmt.Fprintf(os.Stderr, "\t%s %s %s\n", item.Method, item.Path, item.Handler)
-	}
 	fmt.Fprintln(os.Stderr, "HTTP Server Listening on : "+conf.GetEndpoint())
 	return &http.Server{Addr: conf.Addr(), Handler: engine}, nil
 }
