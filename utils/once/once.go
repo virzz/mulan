@@ -1,4 +1,4 @@
-package utils
+package once
 
 import (
 	"sync"

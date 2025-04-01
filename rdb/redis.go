@@ -7,7 +7,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/virzz/mulan/utils"
+	"github.com/virzz/mulan/utils/once"
 	"github.com/virzz/vlog"
 )
 
@@ -38,7 +38,7 @@ func (DebugHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Proce
 
 var (
 	rdb      *redis.Client
-	oncePlus utils.OncePlus
+	oncePlus once.OncePlus
 	Nil      = redis.Nil
 )
 
