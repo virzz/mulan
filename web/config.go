@@ -43,7 +43,7 @@ type Config struct {
 }
 
 func (c *Config) GetEndpoint() string {
-	if c.Endpoint != "" {
+	if c.Endpoint == "" {
 		c.Endpoint = c.Addr()
 	}
 	return c.Endpoint
