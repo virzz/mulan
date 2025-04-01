@@ -19,8 +19,9 @@ type Model struct {
 	UpdatedAt int64             `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
 }
 
-func (m *Model) Defaults() []Modeler { return []Modeler{} }
-func (m *Model) GetID() uint64       { return m.ID }
+func (m *Model) Defaults() []Modeler      { return []Modeler{} }
+func (m *Model) GetID() uint64            { return m.ID }
+func (m *Model) Unique() (string, string) { return "", "" }
 func (m *Model) BeforeCreate(tx *gorm.DB) (err error) {
 	if m.UUID.IsNil() {
 		m.UUID = datatypes.NewBinUUIDv4()
@@ -32,9 +33,7 @@ type StringSlice = datatypes.JSONSlice[string]
 
 var models = []Modeler{}
 
-func Register(model ...Modeler) {
-	models = append(models, model...)
-}
+func Register(model ...Modeler) { models = append(models, model...) }
 
 func Models() []any {
 	var result = make([]any, len(models))
