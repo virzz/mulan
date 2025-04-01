@@ -9,13 +9,13 @@ import (
 	"gorm.io/gorm"
 	gLogger "gorm.io/gorm/logger"
 
-	"github.com/virzz/mulan/utils"
+	"github.com/virzz/mulan/utils/once"
 	"github.com/virzz/vlog"
 )
 
 var (
 	std      *gorm.DB
-	oncePlus utils.OncePlus
+	oncePlus once.OncePlus
 )
 
 func R() *gorm.DB {
