@@ -19,6 +19,8 @@ import (
 	"github.com/virzz/mulan/rdb"
 )
 
+var engine *gin.Engine
+
 func New(conf *Config, routers Routers, mwBefore, mwAfter []gin.HandlerFunc) (*http.Server, error) {
 	os.MkdirAll("logs", 0755)
 	logFile, err := os.OpenFile(filepath.Join("logs", "gin.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -30,7 +32,7 @@ func New(conf *Config, routers Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	engine := gin.New()
+	engine = gin.New()
 	engine.Use(gin.Recovery())
 	if conf.Debug {
 		gin.DefaultWriter = io.MultiWriter(logFile, os.Stdout)
@@ -40,8 +42,14 @@ func New(conf *Config, routers Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 		gin.DefaultWriter = logFile
 		gin.DefaultErrorWriter = logFile
 	}
-	engine.GET(conf.Prefix+"/version", func(c *gin.Context) { c.String(200, conf.version+" "+conf.commit) })
-	engine.GET(conf.Prefix+"/health", func(c *gin.Context) { c.Status(200) })
+
+	versionFn := func(c *gin.Context) { c.String(200, conf.version+" "+conf.commit) }
+	healthFn := func(c *gin.Context) { c.Status(200) }
+	engine.GET("/version", versionFn)
+	engine.GET("/health", healthFn)
+	engine.GET(conf.Prefix+"/version", versionFn)
+	engine.GET(conf.Prefix+"/health", healthFn)
+
 	if conf.Metrics {
 		m := ginmetrics.GetMonitor()
 		m.SetMetricPath("/metrics")
