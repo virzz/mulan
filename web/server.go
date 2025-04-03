@@ -47,8 +47,10 @@ func New(conf *Config, routers Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 	healthFn := func(c *gin.Context) { c.Status(200) }
 	engine.GET("/version", versionFn)
 	engine.GET("/health", healthFn)
-	engine.GET(conf.Prefix+"/version", versionFn)
-	engine.GET(conf.Prefix+"/health", healthFn)
+	if conf.Prefix != "" && conf.Prefix != "/" {
+		engine.GET(conf.Prefix+"/version", versionFn)
+		engine.GET(conf.Prefix+"/health", healthFn)
+	}
 
 	if conf.Metrics {
 		m := ginmetrics.GetMonitor()
