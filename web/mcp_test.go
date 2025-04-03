@@ -45,7 +45,7 @@ func TestWrapMCP(t *testing.T) {
 
 	gin.SetMode(gin.DebugMode)
 	router := gin.New()
-	RegisterMCP(router, s)
+	RegisterMCP(router, s, "/mcp")
 
 	// Initialize
 	req, _ := http.NewRequest("GET", "/mcp/sse", nil)
