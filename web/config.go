@@ -9,7 +9,7 @@ import (
 func FlagSet(defaultPort int) *pflag.FlagSet {
 	fs := pflag.NewFlagSet("http", pflag.ContinueOnError)
 	fs.String("http.system", "", "HTTP System Token")
-	fs.String("http.prefix", "/", "HTTP API Route Prefix")
+	fs.String("http.prefix", "/api", "HTTP API Route Prefix")
 	fs.String("http.endpoint", "", "HTTP Domain Endpoint")
 	fs.String("http.host", "127.0.0.1", "HTTP Listen Address")
 	fs.Int("http.port", defaultPort, "HTTP Listen Port")
@@ -37,8 +37,8 @@ type Config struct {
 	Headers   []string `json:"headers" yaml:"headers"`
 	Debug     bool     `json:"debug" yaml:"debug"`
 	Pprof     bool     `json:"pprof" yaml:"pprof"`
-	RequestID bool     `json:"requestid" yaml:"requestid" default:"true"`
-	Metrics   bool     `json:"metrics" yaml:"metrics" default:"true"`
+	RequestID bool     `json:"requestid" yaml:"requestid"`
+	Metrics   bool     `json:"metrics" yaml:"metrics"`
 	Auth      bool     `json:"auth" yaml:"auth"`
 }
 
