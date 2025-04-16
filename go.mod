@@ -10,7 +10,7 @@ require (
 	github.com/go-json-experiment/json v0.0.0-20250223041408-d3c622f1b874
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/google/uuid v1.6.0
-	github.com/mark3labs/mcp-go v0.17.0
+	github.com/mark3labs/mcp-go v0.20.1
 	github.com/orcaman/concurrent-map/v2 v2.0.1
 	github.com/penglongli/gin-metrics v0.1.13
 	github.com/pkg/errors v0.9.1
