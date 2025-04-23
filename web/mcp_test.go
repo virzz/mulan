@@ -37,7 +37,8 @@ func TestWrapMCP(t *testing.T) {
 
 	gin.SetMode(gin.DebugMode)
 	router := gin.New()
-	RegisterMCP(router, s, "/api")
+	g := router.Group("/api")
+	RegisterMCP(g, s, "/api")
 
 	server := httptest.NewServer(router)
 	defer server.Close()
@@ -104,5 +105,4 @@ func TestWrapMCP(t *testing.T) {
 			t.Logf("CallTool result: %s %s", c.MIMEType, c.Data)
 		}
 	}
-
 }
