@@ -1,0 +1,73 @@
+package log
+
+import (
+	"os"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
+type (
+	Kafka struct {
+		Broker   []string `json:"broker" yaml:"broker"`
+		Topic    string   `json:"topic" yaml:"topic"`
+		Username string   `json:"username" yaml:"username"`
+		Password string   `json:"password" yaml:"password"`
+		Level    string   `json:"level" yaml:"level"`
+	}
+	Http struct {
+		URL   string `json:"url" yaml:"url"`
+		Level string `json:"level" yaml:"level"`
+	}
+	Config struct {
+		IsDev bool    `json:"is_dev" yaml:"is_dev"`
+		Level string  `json:"level" yaml:"level"`
+		Kafka []Kafka `json:"kafka" yaml:"kafka"`
+		Http  []Http  `json:"http" yaml:"http"`
+	}
+)
+
+var atomicLevel = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+
+func SetLevel(lvl int8) { atomicLevel.SetLevel(zapcore.Level(lvl)) }
+
+func New(name ...string) error { return NewWithConfig(Config{Level: "info"}, name...) }
+
+func NewWithConfig(cfg Config, name ...string) error {
+	lvl, err := zapcore.ParseLevel(cfg.Level)
+	if err != nil {
+		lvl = zapcore.InfoLevel
+	}
+	atomicLevel.SetLevel(lvl)
+	cores := []zapcore.Core{
+		zapcore.NewCore(
+			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+			zapcore.Lock(os.Stdout),
+			atomicLevel,
+		),
+	}
+	for _, h := range cfg.Http {
+		lvl, err := zapcore.ParseLevel(h.Level)
+		if err != nil {
+			lvl = zapcore.InfoLevel
+		}
+		cores = append(cores, zapcore.NewCore(
+			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			newHTTPWriter(h.URL),
+			lvl,
+		))
+	}
+
+	logger := zap.New(
+		zapcore.NewTee(cores...),
+		zap.AddStacktrace(zapcore.WarnLevel),
+		zap.AddCaller(),
+	)
+	if len(name) > 0 {
+		logger = logger.
+			Named(name[0]).
+			With(zap.String("service", name[0]))
+	}
+	zap.ReplaceGlobals(logger)
+	return nil
+}

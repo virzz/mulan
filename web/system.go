@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/virzz/mulan/code"
 	"github.com/virzz/mulan/rsp"
-	"github.com/virzz/vlog"
+	"go.uber.org/zap"
 )
 
 func handleSystemUpgrade(c *gin.Context) {
@@ -49,7 +49,7 @@ func handleSystemUpgrade(c *gin.Context) {
 func handleSystemUpload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
-		vlog.Error("Failed to get file", "err", err.Error())
+		zap.L().Error("Failed to get file", zap.Error(err))
 		c.AbortWithStatusJSON(400, rsp.E(code.ParamInvalid, err))
 		return
 	}
@@ -61,7 +61,7 @@ func handleSystemUpload(c *gin.Context) {
 	dstPath := filepath.Join(filepath.Dir(exePath), "_"+filepath.Base(file.Filename))
 	err = c.SaveUploadedFile(file, dstPath)
 	if err != nil {
-		vlog.Error("Failed to save file", "file", file.Filename, "path", dstPath, "err", err.Error())
+		zap.L().Error("Failed to save file", zap.String("file", file.Filename), zap.String("path", dstPath), zap.Error(err))
 		c.AbortWithStatusJSON(400, rsp.E(code.UnknownErr, err))
 		return
 	}

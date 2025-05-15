@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"iter"
+	"net/url"
 	"os/user"
 	"strings"
 	"text/template"
@@ -32,21 +33,33 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO {{.User}};`
 	hostMySQL = `127.0.0.1:3306;/tmp/mysql.sock;/run/mysqld/mysqld.sock;/var/run/mysqld/mysqld.sock;/var/lib/mysql/mysql.sock`
 )
 
-func tryConnect(cmd *cobra.Command, typ DBType) (err error) {
-	cfg := &Config{Debug: true, Type: typ}
-	cfg.Name, _ = cmd.Flags().GetString("name")
-	cfg.User, _ = cmd.Flags().GetString("user")
-	cfg.Pass, _ = cmd.Flags().GetString("pass")
-	cfg.Host, _ = cmd.Flags().GetString("host")
-	cfg.Port, _ = cmd.Flags().GetInt("port")
-	// 自定义 Host 连接
-	if cfg.Host != "" {
+func tryConnect(cmd *cobra.Command) (dsnURL *url.URL, err error) {
+	cfg := &Config{Debug: true}
+	dsnURL = &url.URL{}
+
+	dsnURL.Scheme, _ = cmd.Flags().GetString("scheme")
+	dsnURL.Path, _ = cmd.Flags().GetString("name")
+
+	host, _ := cmd.Flags().GetString("host")
+	port, _ := cmd.Flags().GetInt("port")
+	dsnURL.Host = host
+	if port != 0 {
+		dsnURL.Host = fmt.Sprintf("%s:%d", host, port)
+	}
+	user, _ := cmd.Flags().GetString("user")
+	pass, _ := cmd.Flags().GetString("pass")
+	if user != "" && pass != "" {
+		dsnURL.User = url.UserPassword(user, pass)
+	}
+
+	cfg.DSN = dsnURL.String()
+	if dsnURL.Host != "" {
 		if err = Init(cfg, true); err == nil {
-			return nil
+			return dsnURL, nil
 		}
 	}
 	var hosts iter.Seq[string]
-	switch cfg.Type {
+	switch DBType(dsnURL.Scheme) {
 	case DBMySQL:
 		hosts = strings.SplitSeq(hostMySQL, ";")
 	case DBPgSQL:
@@ -54,14 +67,14 @@ func tryConnect(cmd *cobra.Command, typ DBType) (err error) {
 	default:
 		hosts = strings.SplitSeq(hostPgSQL, ";")
 	}
-	cfg.Port = 0
 	for host := range hosts {
-		cfg.Host = host
+		dsnURL.Host = host
+		cfg.DSN = dsnURL.String()
 		if err = Init(cfg, true); err == nil {
-			return nil
+			return dsnURL, nil
 		}
 	}
-	return errors.New("failed to connect database")
+	return nil, errors.New("failed to connect database")
 }
 
 func parseSql(content string, data any) (string, error) {
@@ -83,17 +96,13 @@ func MaintainCommand(cfg *Config) []*cobra.Command {
 		Use:     "create",
 		Short:   "Create database (Create User,Database and Grant Privileges)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_type, _ := cmd.Flags().GetString("type")
-			if _type != "" {
-				cfg.Type = DBType(_type)
-			}
-			err := tryConnect(cmd, cfg.Type)
+			dsnURL, err := tryConnect(cmd)
 			if err != nil {
 				return err
 			}
 			force, _ := cmd.Flags().GetBool("force")
 			var dropSql, createSql string
-			switch cfg.Type {
+			switch DBType(dsnURL.Scheme) {
 			case DBMySQL:
 				dropSql = dropMySQL
 				createSql = createMySQL

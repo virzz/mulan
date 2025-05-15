@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/virzz/vlog"
+	"go.uber.org/zap"
 )
 
 type Session struct {
@@ -41,7 +41,7 @@ func (s *Session) Data() Data {
 			return s.data
 		}
 		if err := x.Scan(s.data); err != nil {
-			vlog.Warn("Failed to get token data", "token", s.Token_, "err", err.Error())
+			zap.L().Warn("Failed to get token data", zap.String("token", s.Token_), zap.Error(err))
 			if !errors.Is(err, redis.Nil) {
 				s.Token_ = s.data.Token()
 			}
@@ -78,7 +78,7 @@ func (s *Session) Save(lifetime ...time.Duration) error {
 	}
 	key := s.keyPrefix + s.Token_
 	if err := s.store.HSet(s.ctx, key, s.data).Err(); err != nil {
-		vlog.Error("Failed to hset", "key", key, "err", err.Error())
+		zap.L().Error("Failed to hset", zap.String("key", key), zap.Error(err))
 		return err
 	}
 	return s.store.Expire(s.ctx, key, maxAge).Err()

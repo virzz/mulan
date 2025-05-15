@@ -38,14 +38,15 @@ const (
 	DBPgSQL DBType = "postgres"
 )
 
+const (
+	defaultQueryPath string = "./dao/query"
+)
+
 type Config struct {
-	Debug   bool       `json:"debug" yaml:"debug"`
-	Type    DBType     `json:"type" yaml:"type"`
-	Host    string     `json:"host" yaml:"host"`
-	Port    int        `json:"port" yaml:"port"`
-	Name    string     `json:"name" yaml:"name"`
-	User    string     `json:"user" yaml:"user"`
-	Pass    string     `json:"pass" yaml:"pass"`
-	Charset string     `json:"charset" yaml:"charset"`
-	Conn    ConnConfig `json:"conn" yaml:"conn"`
+	Debug              bool       `json:"debug" yaml:"debug"`
+	DSN                string     `json:"dsn" yaml:"dsn"`
+	User               string     `json:"user" yaml:"user"`
+	Pass               string     `json:"pass" yaml:"pass"`
+	Conn               ConnConfig `json:"conn" yaml:"conn"`
+	DisablePrepareStmt bool       `json:"disable_prepare_stmt" yaml:"disable_prepare_stmt"`
 }

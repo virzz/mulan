@@ -1,0 +1,63 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 代码结构规则
+
+## 模块划分
+
+Mulan 项目采用模块化设计，每个模块都有明确的职责：
+
+### 核心模块
+
+- **app** - 应用程序核心和配置
+  - [app/app.go](mdc:app/app.go) - 主应用程序入口和初始化
+  - [app/config.go](mdc:app/config.go) - 应用程序配置
+
+- **web** - Web 服务器和路由
+  - [web/server.go](mdc:web/server.go) - HTTP 服务器
+  - [web/router.go](mdc:web/router.go) - 路由定义
+  - [web/config.go](mdc:web/config.go) - Web 服务器配置
+
+- **db** - 数据库操作
+  - [db/db.go](mdc:db/db.go) - 数据库连接和操作
+  - [db/model.go](mdc:db/model.go) - 数据模型基础定义
+  - [db/mysql.go](mdc:db/mysql.go) - MySQL 数据库支持
+  - [db/pgsql.go](mdc:db/pgsql.go) - PostgreSQL 数据库支持
+
+### 功能模块
+
+- **auth** - 认证和授权
+  - [auth/session.go](mdc:auth/session.go) - 会话管理
+  - [auth/mw.go](mdc:auth/mw.go) - 认证中间件
+  - [auth/apikey/](mdc:auth/apikey/) - API 密钥认证
+
+- **req/rsp** - 请求和响应处理
+  - [req/](mdc:req/) - 请求模型
+  - [rsp/](mdc:rsp/) - 响应模型
+
+- **utils** - 工具函数
+  - [utils/pwd/](mdc:utils/pwd/) - 密码处理
+  - [utils/once/](mdc:utils/once/) - 单次执行工具
+
+## 层次结构
+
+```
+应用层 (app/)
+  |
+  ├── Web 层 (web/)
+  |     |
+  |     └── 认证中间件 (auth/)
+  |
+  └── 数据访问层 (db/, rdb/)
+```
+
+## 模块依赖关系
+
+模块依赖应当遵循以下层次，避免循环依赖：
+
+- utils 模块可被任何其他模块依赖
+- req/rsp 模块可被 web 和 app 模块依赖
+- db 模块可被 app 模块依赖
+- auth 模块主要被 web 模块依赖

@@ -1,0 +1,34 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Mulan 项目概述
+
+Mulan（木兰）是一个基于 Go 语言开发的Web应用框架。该项目主要使用 Gin 作为 Web 框架，Gorm 作为 ORM 工具，并提供了认证、数据库访问、请求/响应处理等功能模块。
+
+## 项目结构
+
+- [app/](mdc:app/) - 应用程序核心配置和初始化
+- [auth/](mdc:auth/) - 认证相关功能，包括会话管理和API密钥认证
+- [captcha/](mdc:captcha/) - 验证码处理功能
+- [code/](mdc:code/) - 错误码和状态码
+- [db/](mdc:db/) - 数据库操作相关功能
+- [rdb/](mdc:rdb/) - 关系型数据库特定功能
+- [req/](mdc:req/) - 请求模型和结构
+- [rsp/](mdc:rsp/) - 响应模型和结构
+- [utils/](mdc:utils/) - 通用工具函数
+- [web/](mdc:web/) - Web服务器和路由
+
+## 主要配置文件
+
+- [go.mod](mdc:go.mod) - Go模块定义和依赖管理
+- [go.sum](mdc:go.sum) - 依赖版本校验
+
+## 技术栈
+
+- Go 1.24.1
+- Gin Web框架
+- Gorm ORM
+- Redis
+- PostgreSQL / MySQL 数据库支持

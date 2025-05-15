@@ -1,11 +1,11 @@
 package web_test
 
 import (
+	"log"
 	"testing"
 	"time"
 
 	"github.com/virzz/mulan/web"
-	"github.com/virzz/vlog"
 )
 
 func TestNew(t *testing.T) {
@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 	go func() {
 		err := httpSrv.ListenAndServe()
 		if err != nil {
-			vlog.Error("Failed to run http server", "err", err.Error())
+			log.Println("Failed to run http server", "err", err.Error())
 		}
 	}()
 

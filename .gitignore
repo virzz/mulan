@@ -35,9 +35,5 @@
 .history
 
 # End of https://www.gitignore.io/api/go,visualstudiocode
-
-_*
-*.log
-*.key
-*.crt
-build/
+# SpecStory explanation file
+.specstory/.what-is-this.md

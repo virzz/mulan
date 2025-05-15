@@ -7,14 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/virzz/daemon/v2"
-	"github.com/virzz/vlog"
 
 	"github.com/virzz/mulan/db"
 	"github.com/virzz/mulan/web"
@@ -28,7 +26,7 @@ type (
 
 var (
 	std      *App
-	routers  web.Routers
+	router   *web.Routers
 	preInit  PreInitFunc
 	validate ValidateFunc
 	Conf     Configer
@@ -68,9 +66,13 @@ func Execute(ctx context.Context, cfg Configer) error {
 	daemon.AddCommand(db.MaintainCommand(cfg.GetDB())...)
 	daemon.AddCommand(cmds...)
 	daemon.Execute(func(cmd *cobra.Command, _ []string) error {
-		os.MkdirAll("logs", 0755)
-		vlog.New(filepath.Join("logs", std.Name+".log"))
-		vlog.Log = vlog.Log.With("service", std.Name)
+		// Logger
+		logger, err := zap.NewProduction()
+		if err != nil {
+			return err
+		}
+		defer logger.Sync()
+		zap.ReplaceGlobals(logger.Named(std.Name))
 
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
@@ -80,9 +82,8 @@ func Execute(ctx context.Context, cfg Configer) error {
 				return err
 			}
 		}
-		webCfg := cfg.GetHTTP().Check().
-			WithVersion(std.Version).WithCommit(std.Commit)
-		httpSrv, err := web.New(webCfg, routers, []gin.HandlerFunc{web.LogMw}, nil)
+		webCfg := cfg.GetHTTP().Check().WithVersion(std.Version).WithCommit(std.Commit)
+		httpSrv, err := web.New(webCfg, router, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -118,8 +119,9 @@ func Version() string                  { return std.Version }
 func Commit() string                   { return std.Commit }
 func SetPreInit(f PreInitFunc)         { preInit = f }
 func SetValidate(f ValidateFunc)       { validate = f }
-func Register(f web.RegisterFunc)      { routers.Register(f) }
+func Register(f web.RegisterFunc)      { router.Register(f) }
 func RegisterModels(ms ...any)         { models = ms }
+func Models() []any                    { return models }
 func AddCommand(cmd ...*cobra.Command) { cmds = append(cmds, cmd...) }
 
 func Run(ctx context.Context, app *App, cfg Configer) error {

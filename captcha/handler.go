@@ -1,21 +1,19 @@
-package web
+package captcha
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
-	"github.com/virzz/vlog"
-
-	"github.com/virzz/mulan/captcha"
 	"github.com/virzz/mulan/code"
 	"github.com/virzz/mulan/req"
 	"github.com/virzz/mulan/rsp"
 )
 
-func CaptchaHandler(debug bool) gin.HandlerFunc {
+func GinHandler(debug bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id, _code, data, err := captcha.CreateB64()
+		id, _code, data, err := CreateB64()
 		if err != nil {
-			vlog.Error("Failed to create base64 captcha", "err", err.Error())
+			zap.L().Error("Failed to create base64 captcha", zap.Error(err))
 			c.AbortWithStatusJSON(200, rsp.C(code.CaptchaGenerate))
 			return
 		}

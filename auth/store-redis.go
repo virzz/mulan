@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/virzz/vlog"
+	"go.uber.org/zap"
 )
 
 type RedisStore struct {
@@ -48,7 +48,7 @@ func (s *RedisStore) Save(ctx context.Context, v Data, lifetime ...time.Duration
 	}
 	key := s.keyPrefix + v.Token()
 	if err := s.client.HSet(ctx, key, v).Err(); err != nil {
-		vlog.Error("Failed to hset", "key", key, "err", err.Error())
+		zap.L().Error("Failed to hset", zap.String("key", key), zap.Error(err))
 		return err
 	}
 	return s.client.Expire(ctx, key, maxAge).Err()

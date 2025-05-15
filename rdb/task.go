@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/virzz/vlog"
+	"go.uber.org/zap"
 )
 
 type Task struct {
@@ -43,7 +43,7 @@ func (t *Task) Process(ctx context.Context, f func(string) error) {
 			&redis.ZRangeBy{Min: "0", Max: strconv.FormatInt(now, 10), Offset: 0, Count: 1}).
 			Result()
 		if err != nil {
-			vlog.Error("Failed to fetch tasks:", "err", err.Error())
+			zap.L().Error("Failed to fetch tasks", zap.Error(err))
 			continue
 		}
 		for _, task := range tasks {
@@ -51,19 +51,19 @@ func (t *Task) Process(ctx context.Context, f func(string) error) {
 			// 移除任务
 			rdb.ZRem(ctx, t.delayedTasksKey, key)
 			// 执行任务
-			vlog.Infof("Executing task %s at %d\n", key, now)
+			zap.L().Info("Executing task", zap.String("key", key), zap.Int64("score", now))
 			if err := f(key); err != nil {
-				vlog.Error("Failed to execute task", "key", key, "score", task.Score, "err", err.Error())
+				zap.L().Error("Failed to execute task", zap.String("key", key), zap.Float64("score", task.Score), zap.Error(err))
 				// 重试
 				count, err := rdb.Incr(ctx, t.retryTasksKey+key).Result()
 				if err != nil {
-					vlog.Error("Failed to increase retry count", "key", key, "err", err.Error())
+					zap.L().Error("Failed to increase retry count", zap.String("key", key), zap.Error(err))
 				}
 				if count <= t.maxRetryCount {
 					// 重试延迟 count*10 秒
 					rdb.ZAdd(ctx, t.delayedTasksKey, redis.Z{Score: float64(now + 10*count), Member: key})
 				} else {
-					vlog.Error("Retry count exceeded", "key", key, "count", count)
+					zap.L().Error("Retry count exceeded", zap.String("key", key), zap.Int64("count", count))
 				}
 			}
 		}

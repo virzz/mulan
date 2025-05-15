@@ -1,0 +1,8 @@
+version: "0.1"
+database:
+  dsn: "postgres://postgres:o6fLcEGNmGyZ.XWY@101.44.160.142:5433/soc_alert?sslmode=disable"
+  db: "postgres"
+  tables:
+    - alerts
+  onlyModel: true
+  fieldWithTypeTag: true

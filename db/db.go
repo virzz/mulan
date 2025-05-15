@@ -3,25 +3,35 @@ package db
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	cmap "github.com/orcaman/concurrent-map/v2"
+	"go.uber.org/zap"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gLogger "gorm.io/gorm/logger"
+	zapgorm2 "moul.io/zapgorm2"
 
 	"github.com/virzz/mulan/utils/once"
-	"github.com/virzz/vlog"
 )
 
 var (
 	std      *gorm.DB
 	oncePlus once.OncePlus
-	multi    cmap.ConcurrentMap[string, *gorm.DB]
+	multi    = cmap.New[*gorm.DB]()
 )
 
-func R() *gorm.DB {
+func R(name ...string) *gorm.DB {
+	if len(name) > 0 {
+		if db, ok := multi.Get(name[0]); ok {
+			return db
+		}
+		panic(name[0] + " not init")
+	}
 	if std == nil {
 		panic("db not init")
 	}
@@ -30,8 +40,19 @@ func R() *gorm.DB {
 
 func Migrate(models ...any) error { return std.AutoMigrate(models...) }
 
-func connect(cfg *Config) (*gorm.DB, error) {
-	newLogger := gLogger.Default.LogMode(gLogger.Info)
+func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
+	dsnURL, err := url.Parse(cfg.DSN)
+	if err != nil {
+		zap.L().Error("parse dsn fail:", zap.Error(err))
+		return nil, err
+	}
+	if cfg.User != "" || cfg.Pass != "" {
+		dsnURL.User = url.UserPassword(cfg.User, cfg.Pass)
+	}
+	if dsnURL.Host == "" {
+		dsnURL.Host = "localhost"
+	}
+	var newLogger gLogger.Interface
 	if cfg.Debug {
 		newLogger = gLogger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), gLogger.Config{
 			SlowThreshold:             200 * time.Millisecond,
@@ -39,39 +60,75 @@ func connect(cfg *Config) (*gorm.DB, error) {
 			Colorful:                  true,
 		})
 	} else {
-		f, err := os.OpenFile(filepath.Join("logs", "db.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			vlog.Warn("Failed to open gorm log file", "err", err.Error())
-		} else {
-			newLogger = gLogger.New(log.New(f, "\r\n", log.LstdFlags),
-				gLogger.Config{LogLevel: gLogger.Warn, IgnoreRecordNotFoundError: true},
-			)
-		}
+		logger := zapgorm2.New(zap.L())
+		logger.SetAsDefault()
+		newLogger = logger
 	}
-	gormCfg := &gorm.Config{Logger: newLogger,
+	gormCfg := &gorm.Config{
+		Logger:                                   newLogger,
 		QueryFields:                              true,
 		DisableForeignKeyConstraintWhenMigrating: true,
 		IgnoreRelationshipsWhenMigrating:         true,
 	}
+	if cfg.DisablePrepareStmt {
+		gormCfg.PrepareStmt = false
+	}
 	//Dialector
 	var dialector gorm.Dialector
-	switch cfg.Type {
+	switch DBType(dsnURL.Scheme) {
 	case DBMySQL:
-		dialector = DialectorMySQL(cfg)
+		if strings.HasPrefix(dsnURL.Host, "/") {
+			dsnURL.Host = "unix(" + dsnURL.Host + ")"
+		} else {
+			dsnURL.Host = "tcp(" + dsnURL.Host + ")"
+		}
+		query := dsnURL.Query()
+		if !query.Has("charset") {
+			query.Set("charset", "utf8mb4")
+		}
+		if !query.Has("parseTime") {
+			query.Set("parseTime", "True")
+		}
+		if !query.Has("loc") {
+			query.Set("loc", "Local")
+		}
+		dsnURL.RawQuery = query.Encode()
+		dsn := dsnURL.String()
+		dialector = mysql.New(mysql.Config{
+			DSN:                    dsn[strings.Index(dsn, "://")+3:],
+			DefaultStringSize:      255,
+			DontSupportRenameIndex: true,
+		})
+		zap.L().Info("Connecting to DB", zap.String("dsn", dsn))
 	case DBPgSQL:
 		fallthrough
 	default:
-		dialector = DialectorPgSQL(cfg)
+		query := dsnURL.Query()
+		if !query.Has("sslmode") {
+			query.Set("sslmode", "disable")
+		}
+		if !query.Has("TimeZone") {
+			query.Set("TimeZone", "Asia/Shanghai")
+		}
+		dsnURL.RawQuery = query.Encode()
+		dialector = postgres.New(postgres.Config{
+			DSN:                  dsnURL.String(),
+			PreferSimpleProtocol: true,
+		})
 	}
 	// Open
-	db, err := gorm.Open(dialector, gormCfg)
+	if len(wrapper) > 0 {
+		wrapper[0].Apply(dialector)
+	}
+	db, err := gorm.Open(wrapper[0], gormCfg)
 	if err != nil {
-		vlog.Error("Failed to connect db", "err", err.Error())
+		zap.L().Error("Failed to connect db", zap.String("dsn", dsnURL.String()), zap.Error(err))
 		return nil, err
 	}
+	// sql.DB Config
 	sqlDB, err := db.DB()
 	if err != nil {
-		vlog.Warn("Failed to get sql.db", "err", err.Error())
+		zap.L().Warn("Failed to get sql.db", zap.Error(err))
 	} else {
 		sqlDB.SetMaxIdleConns(cfg.Conn.Idle)                                     // 最大空闲连接
 		sqlDB.SetMaxOpenConns(cfg.Conn.Open)                                     // 最大连接数
@@ -102,14 +159,14 @@ func Init(cfg *Config, force ...bool) error {
 	})
 }
 
-func New(cfg *Config, name string) (*gorm.DB, error) {
+func New(cfg *Config, name string, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 	if name == "" {
-		name = cfg.Name
+		name = "std"
 	}
 	if multi.Has(name) {
 		return nil, fmt.Errorf("db %s already exists", name)
 	}
-	db, err := connect(cfg)
+	db, err := connect(cfg, wrapper...)
 	if err != nil {
 		return nil, err
 	}

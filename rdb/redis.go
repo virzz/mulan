@@ -6,9 +6,9 @@ import (
 	"net"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 
 	"github.com/virzz/mulan/utils/once"
-	"github.com/virzz/vlog"
 )
 
 type DebugHook struct{}
@@ -23,9 +23,8 @@ func (DebugHook) DialHook(next redis.DialHook) redis.DialHook {
 // 执行命令时调用
 func (DebugHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
-		vlog.Info(cmd.String())
-		next(ctx, cmd)
-		return nil
+		zap.L().Info(cmd.String())
+		return next(ctx, cmd)
 	}
 }
 
@@ -48,7 +47,7 @@ func connect(cfg *Config) error {
 		Password: cfg.Pass,
 		DB:       cfg.DB,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			vlog.Info("Redis is connected")
+			zap.L().Info("Redis is connected")
 			return nil
 		},
 	})

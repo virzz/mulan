@@ -1,0 +1,64 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 技术栈和工具集
+
+## 主要技术栈
+
+### 后端开发
+
+**Go 语言**
+- 版本: 1.24.1
+- 主要框架:
+    - Gin Web框架
+    - Gorm ORM
+    - Go Redis客户端
+
+### 数据存储
+
+1. **数据库**
+   - 主要: PostgreSQL
+   - 备选: MySQL
+   - 用途: 持久化存储核心业务数据
+
+2. **Redis**
+   - 用途: 缓存、会话存储、分布式锁
+   - 配置: 集群模式确保高可用
+
+### 通信协议
+
+1. **RESTful API**
+   - 格式: JSON
+   - 用途: 客户端与服务器通信
+
+2. **gRPC**
+   - 工具: Buf
+   - 用途: 微服务之间的高效通信
+
+## 容器和编排
+
+1. **容器技术**
+   - 优先: Podman
+   - 备选: Docker
+   - 用途: 应用打包和隔离
+
+2. **Kubernetes**
+   - 用途: 容器编排和集群管理
+   - 组件: Deployment, Service, Ingress, ConfigMap, Secret
+
+## 开发工具
+
+1. **IDE/编辑器**
+   - 推荐: Visual Studio Code 或 Cursor
+   - 配置: 保持项目一致的格式化规则
+
+2. **代码质量**
+   - 静态分析: golangci-lint
+   - 测试覆盖率: go test -cover
+   - 代码审查: 通过 PR 流程
+
+3. **文档**
+   - API文档: Swagger/OpenAPI
+   - 项目文档: Markdown格式

@@ -6,6 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/virzz/mulan/db"
+	"github.com/virzz/mulan/log"
 	"github.com/virzz/mulan/rdb"
 	"github.com/virzz/mulan/web"
 )
@@ -17,9 +18,10 @@ type (
 		GetDB() *db.Config
 	}
 	Config struct {
-		HTTP web.Config `json:"http" yaml:"http"`
-		DB   db.Config  `json:"db" yaml:"db"`
-		RDB  rdb.Config `json:"rdb" yaml:"rdb"`
+		HTTP   web.Config `json:"http" yaml:"http"`
+		DB     db.Config  `json:"db" yaml:"db"`
+		RDB    rdb.Config `json:"rdb" yaml:"rdb"`
+		Logger log.Config `json:"logger" yaml:"logger"`
 	}
 )
 
@@ -38,12 +40,9 @@ func (c *Config) Template(typ ...string) string {
 			Auth:      true,
 		},
 		DB: db.Config{
-			Host: "127.0.0.1",
-			Type: "postgres",
-			Port: 5432,
+			DSN:  "postgres://postgres:postgres@127.0.0.1:5432/postgres",
 			User: "postgres",
 			Pass: "postgres",
-			Name: "postgres",
 		},
 		RDB: rdb.Config{
 			Host: "127.0.0.1",

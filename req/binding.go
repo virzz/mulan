@@ -7,8 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-
-	"github.com/virzz/vlog"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -72,11 +71,11 @@ func ShouldBind(c *gin.Context, obj any) error {
 	err := binding.Default(c.Request.Method, c.ContentType()).
 		Bind(c.Request, obj)
 	if err != nil {
-		vlog.Warn("Failed to bind", "err", err.Error())
+		zap.L().Warn("Failed to bind", zap.Error(err))
 	}
 	if len(c.Params) > 0 {
 		if err := c.ShouldBindUri(obj); err != nil {
-			vlog.Warn("Failed to bind uri", "err", err.Error())
+			zap.L().Warn("Failed to bind uri", zap.Error(err))
 		}
 	}
 	return Validator.ValidateStruct(obj)

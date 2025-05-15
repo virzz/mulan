@@ -1,0 +1,10 @@
+version: "0.1"
+database:
+  dsn: "mysql://soc_bigdata_readonly:BytMpUi2DNuXq9Rf@101.44.160.142:9030/raw?charset=utf8mb4&parseTime=true&loc=Local"
+  db: "mysql"
+  tables:
+    - larkuser
+    - gruser
+  outPath: "./dao/query"
+  onlyModel: true
+  fieldWithTypeTag: true
