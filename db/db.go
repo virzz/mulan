@@ -117,10 +117,14 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 		})
 	}
 	// Open
+	var _wrapper gorm.Dialector
 	if len(wrapper) > 0 {
 		wrapper[0].Apply(dialector)
+		_wrapper = wrapper[0]
+	} else {
+		_wrapper = dialector
 	}
-	db, err := gorm.Open(wrapper[0], gormCfg)
+	db, err := gorm.Open(_wrapper, gormCfg)
 	if err != nil {
 		zap.L().Error("Failed to connect db", zap.String("dsn", dsnURL.String()), zap.Error(err))
 		return nil, err
