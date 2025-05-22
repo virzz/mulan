@@ -52,7 +52,9 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 		_pass = cfg.Pass
 	}
 	dsnURL.User = url.UserPassword(_user, _pass)
-
+	if cfg.Name != "" {
+		dsnURL.Path = "/" + cfg.Name
+	}
 	if dsnURL.Host == "" {
 		dsnURL.Host = "localhost"
 	}
