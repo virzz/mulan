@@ -2,128 +2,142 @@ package app
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/virzz/daemon/v2"
-
-	"github.com/virzz/mulan/db"
+	"github.com/virzz/mulan/log"
 	"github.com/virzz/mulan/web"
 )
 
 type (
+	ActionFunc   func(cmd *cobra.Command, args []string) error
 	PreInitFunc  func(context.Context) error
 	ValidateFunc func() error
-	App          struct{ ID, Name, Description, Version, Commit string }
+
+	Meta struct {
+		ID          string
+		Name        string
+		Description string
+		Version     string
+		Commit      string
+	}
+	App struct {
+		*Meta
+		rootCmd  *cobra.Command
+		action   ActionFunc
+		routers  *web.Routers
+		preInit  PreInitFunc
+		validate ValidateFunc
+		conf     Configer
+		log      *zap.Logger
+		remote   *Remote //lint:ignore U1000 remote config
+	}
 )
 
 var (
-	std      *App
-	router   *web.Routers
-	preInit  PreInitFunc
-	validate ValidateFunc
-	Conf     Configer
-
-	cmds   []*cobra.Command
-	models []any
+	std  *App
+	Conf Configer
 )
 
-func (app *App) Run(ctx context.Context, cfg Configer) error {
-	std = app
-	return Execute(context.Background(), cfg)
+func New(meta *Meta) *App {
+	std = &App{
+		Meta: meta,
+		rootCmd: &cobra.Command{
+			CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
+			SilenceErrors:     true,
+			SilenceUsage:      true,
+			RunE: func(_ *cobra.Command, _ []string) error {
+				panic("execute action not implemented")
+			},
+		},
+	}
+	return std
 }
 
-func Execute(ctx context.Context, cfg Configer) error {
-	daemon.New(std.ID, std.Name, std.Description, std.Version, std.Commit)
-	daemon.RegisterConfig(cfg)
-	daemon.AddCommand(&cobra.Command{
-		Use: "validate", Aliases: []string{"valid"},
-		Short: "Validate Configuration",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if validate == nil {
-				return errors.New("not implemented validate function")
-			}
-			if err := cfg.Validate(); err != nil {
-				return err
-			}
-			if err := validate(); err != nil {
-				return err
-			}
-			fmt.Println("Valid configuration")
-			return nil
-		},
-	})
+func (app *App) SetPreInit(f PreInitFunc)         { app.preInit = f }
+func (app *App) SetValidate(f ValidateFunc)       { app.validate = f }
+func (app *App) SetRouters(routers *web.Routers)  { app.routers = routers }
+func (app *App) SetAction(action ActionFunc)      { app.action = action }
+func (app *App) SetConfig(config Configer)        { app.conf = config }
+func (app *App) Register(f web.RegisterFunc)      { app.routers.Register(f) }
+func (app *App) AddCommand(cmd ...*cobra.Command) { app.rootCmd.AddCommand(cmd...) }
+func (app *App) RootCmd() *cobra.Command          { return app.rootCmd }
+func (app *App) Routers() *web.Routers            { return app.routers }
+func (app *App) AddFlagSet(fs ...*pflag.FlagSet) {
+	for _, f := range fs {
+		app.rootCmd.Flags().AddFlagSet(f)
+	}
+}
+func (app *App) Run(ctx context.Context, cfg Configer) error { return app.Execute(ctx, cfg) }
 
-	daemon.RootCmd().AddGroup(&cobra.Group{ID: "maintain", Title: "Maintain Commands"})
-	// Maintain Cmds
-	daemon.AddCommand(db.MaintainCommand(cfg.GetDB())...)
-	daemon.AddCommand(cmds...)
-	daemon.Execute(func(cmd *cobra.Command, _ []string) error {
-		// Logger
-		logger, err := zap.NewProduction()
+func (app *App) preRunE(ctx context.Context) (err error) {
+	if app.conf != nil {
+		err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
+		if err != nil {
+			app.log.Error("Failed to unmarshal register config", zap.Error(err))
+			return err
+		}
+	}
+	// Load Log
+	logger, err := log.NewWithConfig(app.conf.GetLog())
+	if err != nil {
+		return err
+	}
+	app.log = logger.Named("app")
+	// Validate
+	if app.validate != nil {
+		err = app.validate()
 		if err != nil {
 			return err
 		}
-		defer logger.Sync()
-		zap.ReplaceGlobals(logger.Named(std.Name))
-
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		if preInit != nil {
-			if err := preInit(ctx); err != nil {
-				return err
-			}
-		}
-		webCfg := cfg.GetHTTP().Check().WithVersion(std.Version).WithCommit(std.Commit)
-		httpSrv, err := web.New(webCfg, router, nil, nil)
+	} else if err = app.conf.Validate(); err != nil {
+		return err
+	}
+	// PreInit
+	if app.preInit != nil {
+		err = app.preInit(ctx)
 		if err != nil {
 			return err
 		}
-
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-
-		go func() {
-			err := httpSrv.ListenAndServe()
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				fmt.Fprintln(os.Stderr, err)
-				sig <- os.Interrupt
-			}
-		}()
-
-		switch <-sig {
-		case os.Interrupt:
-			httpSrv.Close()
-		case syscall.SIGTERM:
-			httpSrv.Shutdown(ctx)
-		}
-		return nil
-	})
+	}
 	return nil
 }
 
-func ID() string                       { return std.ID }
-func AppID() string                    { return std.ID }
-func Name() string                     { return std.Name }
-func Description() string              { return std.Description }
-func Desc() string                     { return std.Description }
-func Version() string                  { return std.Version }
-func Commit() string                   { return std.Commit }
-func SetPreInit(f PreInitFunc)         { preInit = f }
-func SetValidate(f ValidateFunc)       { validate = f }
-func Register(f web.RegisterFunc)      { router.Register(f) }
-func RegisterModels(ms ...any)         { models = ms }
-func Models() []any                    { return models }
-func AddCommand(cmd ...*cobra.Command) { cmds = append(cmds, cmd...) }
+func (app *App) Execute(ctx context.Context, cfg Configer) error {
+	app.AddFlagSet(log.FlagSet())
+	logger, err := log.New(app.Name)
+	if err != nil {
+		return err
+	}
+	defer logger.Sync()
+	app.log = logger.Named("app")
+	// Action
+	if app.action != nil {
+		app.rootCmd.RunE = app.action
+	}
+	// Config
+	app.rootCmd.Flags().String("instance", "default", "instance name")
+	app.rootCmd.Flags().String("config", "", "config file")
+	err = viper.BindPFlags(app.rootCmd.Flags())
+	if err != nil {
+		return err
+	}
 
-func Run(ctx context.Context, app *App, cfg Configer) error {
-	return std.Run(ctx, cfg)
+	viper.SetEnvPrefix(app.Name)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+
+	app.conf = cfg
+	// Execute
+	if err := app.ExecuteE(ctx); err != nil {
+		app.log.Error("Failed to execute app", zap.Error(err))
+		os.Exit(1)
+	}
+	return nil
 }

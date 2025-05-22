@@ -62,8 +62,6 @@ func genProcess(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	g := gen.NewGenerator(gen.Config{
-		OutPath:           config.OutPath,
-		OutFile:           config.OutFile,
 		ModelPkgPath:      config.ModelPkgName,
 		WithUnitTest:      config.WithUnitTest,
 		FieldNullable:     config.FieldNullable,
@@ -92,7 +90,7 @@ func genProcess(cmd *cobra.Command, args []string) error {
 }
 
 func main() {
-	mlog.NewWithConfig(mlog.Config{Level: "error"})
+	mlog.NewWithConfig(&mlog.Config{Level: "error"})
 	rootCmd.Flags().AddFlagSet(db.GenFlagSet())
 	viper.BindPFlags(rootCmd.Flags())
 	if err := rootCmd.Execute(); err != nil {

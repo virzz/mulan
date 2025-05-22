@@ -33,6 +33,18 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO {{.User}};`
 	hostMySQL = `127.0.0.1:3306;/tmp/mysql.sock;/run/mysqld/mysqld.sock;/var/run/mysqld/mysqld.sock;/var/lib/mysql/mysql.sock`
 )
 
+var models = []Modeler{}
+
+func Register(model ...Modeler) { models = append(models, model...) }
+
+func Models() []any {
+	var result = make([]any, len(models))
+	for i, model := range models {
+		result[i] = model
+	}
+	return result
+}
+
 func tryConnect(cmd *cobra.Command) (dsnURL *url.URL, err error) {
 	cfg := &Config{Debug: true}
 	dsnURL = &url.URL{}
@@ -141,7 +153,7 @@ func MaintainCommand(cfg *Config) []*cobra.Command {
 	if u != nil {
 		username = u.Username
 	}
-	createCmd.Flags().StringP("type", "T", "", "Database Type: mysql/postgres")
+	createCmd.Flags().StringP("schema", "S", "", "Database Type")
 	createCmd.Flags().StringP("host", "H", "", "Database Host/Socket")
 	createCmd.Flags().IntP("port", "p", 0, "Database Port")
 	createCmd.Flags().StringP("user", "U", username, "Database username")

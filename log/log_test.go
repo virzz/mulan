@@ -8,7 +8,7 @@ import (
 )
 
 func TestLog(t *testing.T) {
-	log.NewWithConfig(log.Config{
+	log.NewWithConfig(&log.Config{
 		Level: "debug",
 		Http: []log.Http{
 			{

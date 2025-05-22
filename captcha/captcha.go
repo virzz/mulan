@@ -18,44 +18,31 @@ import (
 var fontData []byte
 
 type (
-	Config struct {
-		Width, Height                    int         // width and height of the captcha image
-		Bg, Ft                           color.Color // background and font color
-		Face                             font.Face   // font face
-		Size                             float64     // font size
-		DPI                              float64     // DPI
-		Lines, Points, Rotates, Distorts int         // Number of
-		Bit                              int         // Length of captcha text
+	Noise struct {
+		Lines    int
+		Points   int
+		Rotates  int
+		Distorts int
 	}
-
+	Config struct {
+		Width, Height int         // width and height of the captcha image
+		Bg, Ft        color.Color // background and font color
+		Size          float64     // font size
+		DPI           float64     // DPI
+		Bit           int         // Length of captcha text
+		Noise
+	}
 	Data struct {
 		Content string
 		Result  string
 		Expire  int64
 	}
-
 	Captcha struct {
 		*Config
-		drawer *font.Drawer
+		font *sfnt.Font
+		face font.Face
 	}
 )
-
-func (c *Config) ParseFont(buf []byte) error {
-	obj, err := sfnt.Parse(buf)
-	if err != nil {
-		return err
-	}
-	if c.DPI == 0 {
-		c.DPI = 72
-	}
-	if c.Size == 0 {
-		c.Size = 24
-	}
-	c.Face, err = opentype.NewFace(obj, &opentype.FaceOptions{
-		Size: c.Size, DPI: c.DPI, Hinting: font.HintingNone,
-	})
-	return err
-}
 
 func (c *Config) Validate() error {
 	if c.Width <= 0 {
@@ -73,86 +60,99 @@ func (c *Config) Validate() error {
 	if c.Bit <= 0 {
 		return errors.New("bit must be greater than 0")
 	}
-	if c.Face == nil {
-		return errors.New("font face is nil")
-	}
 	return nil
 }
 
-func init() {
-	defaultConfig.ParseFont(fontData)
-}
-
 func New(c *Config) (*Captcha, error) {
-	if err := c.Validate(); err != nil {
+	err := c.Validate()
+	if err != nil {
 		return nil, err
 	}
-	if c.Face == nil {
-		if err := c.ParseFont(fontData); err != nil {
-			return nil, err
-		}
+	font, err := sfnt.Parse(fontData)
+	if err != nil {
+		return nil, err
 	}
-	// 初始化字体 & 字体画笔
-	drawer := &font.Drawer{
-		Src:  image.NewUniform(c.Ft),
-		Face: c.Face,
-		Dot:  fixed.P(0, c.Face.Metrics().Ascent.Floor()),
+	if c.DPI == 0 {
+		c.DPI = 72
 	}
-	return &Captcha{drawer: drawer, Config: c}, nil
+	if c.Size == 0 {
+		c.Size = 24
+	}
+	face, err := parseFont(font, c.Size, c.DPI)
+	if err != nil {
+		return nil, err
+	}
+	return &Captcha{Config: c, font: font, face: face}, nil
+}
+
+func parseFont(f *opentype.Font, size, dpi float64) (font.Face, error) {
+	return opentype.NewFace(f, &opentype.FaceOptions{
+		Size: size, DPI: dpi, Hinting: font.HintingNone,
+	})
 }
 
 func (c *Captcha) Draw() (image.Image, *Data) {
+	// 创建本地副本，避免并发修改共享状态
+	width, height := c.Width, c.Height
+	// 为每次Draw调用创建新的font face，彻底消除并发问题
+	fontFace, err := parseFont(c.font, c.Size, c.DPI)
+	if err != nil {
+		fontFace = c.face
+	}
 	// 生成随机字符串
 	text, result := randomEquation(c.Bit)
+	// 创建完全独立的drawer对象
+	drawer := &font.Drawer{
+		Src:  image.NewUniform(c.Ft),
+		Face: fontFace,
+		Dot:  fixed.P(0, fontFace.Metrics().Ascent.Floor()),
+	}
 	// 字符串空间计算
-	drawBound, advance := c.drawer.BoundString(text)
+	drawBound, advance := drawer.BoundString(text)
 	textWidth := advance.Ceil() + 30
 	textHeight := (drawBound.Max.Y - drawBound.Min.Y).Ceil() + 20
-	if textWidth > c.Width {
-		c.Width = textWidth
+	// 使用局部变量，而不是修改共享状态
+	if textWidth > width {
+		width = textWidth
 	}
-	if textHeight > c.Height {
-		c.Height = textHeight
+	if textHeight > height {
+		height = textHeight
 	}
 	// 初始化底图
-	img := image.NewRGBA(image.Rect(0, 0, c.Width, c.Height))
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.Draw(img, img.Bounds(), image.NewUniform(c.Bg), image.Point{}, draw.Over)
-	// 绘制字符串
-	c.drawText(img, text)
+	// 使用独立的drawer绘制文本
+	drawTextConcurrent(img, text, drawer, fontFace)
 	// 绘制噪点
-	c.drawNoise(img)
+	drawNoise(img, width, height, c.Noise)
 	return img, &Data{Content: text, Result: result}
 }
 
-func (c *Captcha) drawText(img draw.Image, text string) *Captcha {
-	c.drawer.Dst = img
+func drawTextConcurrent(img draw.Image, text string, drawer *font.Drawer, face font.Face) {
+	drawer.Dst = img
 	// 字符串居中
-	b, _ := c.drawer.BoundString(text)
+	b, _ := drawer.BoundString(text)
 	width := b.Max.X / fixed.I(len(text))
 	// 水平居中
 	x := (fixed.I(img.Bounds().Max.X) - b.Max.X) / 2
-	dot := c.drawer.Dot
-	c.drawer.Dot.X = x
+	dot := drawer.Dot
+	drawer.Dot.X = x
 	// 计算垂直方向的中心位置
-	baseY := (fixed.I(img.Bounds().Max.Y) + c.Face.Metrics().Height) / 2
+	baseY := (fixed.I(img.Bounds().Max.Y) + face.Metrics().Height) / 2
 	for _, t := range text {
 		// 设置字符的Y坐标，基于中心位置随机浮动
-		c.drawer.Dot.Y = baseY + fixed.I(rand.Intn(10)-10)
-		c.drawer.DrawBytes([]byte{byte(t)})
-		c.drawer.Dot.X += width
+		drawer.Dot.Y = baseY + fixed.I(rand.Intn(10)-10)
+		drawer.DrawBytes([]byte{byte(t)})
+		drawer.Dot.X += width
 	}
-	c.drawer.Dot = dot
-	return c
+	drawer.Dot = dot
 }
 
-func (c *Captcha) drawNoise(img draw.Image) *Captcha {
-	// draw rotates 旋转
-	// c.drawRotate(img)
+func drawNoise(img draw.Image, w, h int, n Noise) {
 	// draw distorts 扭曲 - 简单的扭曲变形
-	c.drawDistort(img)
+	drawDistort(img, w, h)
 	// draw points 点
-	c.drawPoints(img)
+	drawPoints(img, w, h, n.Points)
 	// draw lines 线
-	c.drawNoiseLines(img)
-	return c
+	drawNoiseLines(img, w, h, n.Lines)
 }

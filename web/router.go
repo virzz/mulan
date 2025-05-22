@@ -19,3 +19,5 @@ func (rs Routers) Apply(g *gin.RouterGroup) {
 	}
 }
 func Routes() []gin.RouteInfo { return engine.Routes() }
+
+func NewRouters() *Routers { return &Routers{} }

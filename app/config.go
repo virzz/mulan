@@ -12,23 +12,44 @@ import (
 )
 
 type (
+	Token struct {
+		Disable bool   `json:"disable" yaml:"disable"`
+		KeyName string `json:"keyname" yaml:"keyname"`
+		APIKey  string `json:"apikey" yaml:"apikey"`
+		System  string `json:"system" yaml:"system"`
+	}
 	Configer interface {
 		Validate() error
 		GetHTTP() *web.Config
 		GetDB() *db.Config
+		GetRDB() *rdb.Config
+		GetLog() *log.Config
+		GetToken() *Token
 	}
 	Config struct {
-		HTTP   web.Config `json:"http" yaml:"http"`
-		DB     db.Config  `json:"db" yaml:"db"`
-		RDB    rdb.Config `json:"rdb" yaml:"rdb"`
-		Logger log.Config `json:"logger" yaml:"logger"`
+		HTTP  web.Config `json:"http" yaml:"http"`
+		DB    db.Config  `json:"db" yaml:"db"`
+		RDB   rdb.Config `json:"rdb" yaml:"rdb"`
+		Log   log.Config `json:"log" yaml:"log"`
+		Token Token      `json:"token" yaml:"token"`
 	}
 )
 
 func (c *Config) GetHTTP() *web.Config { return &c.HTTP }
 func (c *Config) GetDB() *db.Config    { return &c.DB }
 func (c *Config) GetRDB() *rdb.Config  { return &c.RDB }
-func (c *Config) Validate() error      { return nil }
+func (c *Config) GetToken() *Token     { return &c.Token }
+func (c *Config) GetLog() *log.Config {
+	if c.Log.Level == "" {
+		c.Log.Level = "info"
+	}
+	return &c.Log
+}
+
+func (c *Config) Validate() error {
+	return nil
+}
+
 func (c *Config) Template(typ ...string) string {
 	_c := &Config{
 		HTTP: web.Config{

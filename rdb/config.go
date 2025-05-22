@@ -6,12 +6,12 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func FlagSet(name string) *pflag.FlagSet {
+func FlagSet() *pflag.FlagSet {
 	fs := pflag.NewFlagSet("rdb", pflag.ContinueOnError)
 	fs.Bool("rdb.debug", false, "Database Debug Mode")
 	fs.String("rdb.host", "127.0.0.1", "Database Host")
 	fs.Int("rdb.port", 6379, "Database Port")
-	fs.Int("rdb.db", 0, "Database User")
+	fs.Int("rdb.db", 0, "Database Index")
 	fs.String("rdb.pass", "", "Database Password")
 	return fs
 }

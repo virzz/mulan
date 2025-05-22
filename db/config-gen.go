@@ -11,8 +11,6 @@ type GenParams struct {
 	DB                string   `yaml:"db"`                // input mysql or postgres or sqlite or sqlserver. consult[https://gorm.io/docs/connecting_to_the_database.html]
 	Tables            []string `yaml:"tables"`            // enter the required data table or leave it blank
 	OnlyModel         bool     `yaml:"onlyModel"`         // only generate model
-	OutPath           string   `yaml:"outPath"`           // specify a directory for output
-	OutFile           string   `yaml:"outFile"`           // query code file name, default: gen.go
 	WithUnitTest      bool     `yaml:"withUnitTest"`      // generate unit test for query code
 	ModelPkgName      string   `yaml:"modelPkgName"`      // generated model code's package name
 	FieldNullable     bool     `yaml:"fieldNullable"`     // generate with pointer when field is nullable
@@ -28,9 +26,6 @@ func (c *GenParams) Revise() *GenParams {
 	}
 	if c.DB == "" {
 		c.DB = "mysql"
-	}
-	if c.OutPath == "" {
-		c.OutPath = defaultQueryPath
 	}
 	if len(c.Tables) == 0 {
 		return c
@@ -54,15 +49,11 @@ type GenConfig struct {
 
 func GenFlagSet() *pflag.FlagSet {
 	fs := pflag.NewFlagSet("gen", pflag.ContinueOnError)
-
 	fs.StringP("config", "c", "", "is path for gen.yml")
-
 	fs.String("dsn", "", "consult[https://gorm.io/docs/connecting_to_the_database.html]")
 	fs.String("db", "", "input mysql|postgres. consult[https://gorm.io/docs/connecting_to_the_database.html]")
 	fs.String("tables", "", "enter the required data table or leave it blank")
 	fs.Bool("onlyModel", false, "only generate models (without query file)")
-	fs.String("outPath", "", "specify a directory for output")
-	fs.String("outFile", "", "query code file name, default: gen.go")
 	fs.Bool("withUnitTest", false, "generate unit test for query code")
 	fs.String("modelPkgName", "", "generated model code's package name")
 	fs.Bool("fieldNullable", false, "generate with pointer when field is nullable")

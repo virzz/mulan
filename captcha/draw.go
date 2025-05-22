@@ -7,75 +7,43 @@ import (
 	"math/rand"
 )
 
-// // drawRotate 旋转
-// func (c *Captcha) drawRotate(img draw.Image) *Captcha {
-// 	// 设置旋转角度（逆时针, 单位为度）
-// 	radian := float64(c.Rotates) * math.Pi / 180.0
-// 	// 计算新图像的尺寸
-// 	cx, cy := float64(c.Width)/2, float64(c.Height)/2
-// 	// 计算旋转之后新的图像尺寸
-// 	newW := int(math.Abs(float64(c.Width)*math.Cos(radian)) + math.Abs(float64(c.Height)*math.Sin(radian)))
-// 	newH := int(math.Abs(float64(c.Height)*math.Cos(radian)) + math.Abs(float64(c.Width)*math.Sin(radian)))
-// 	// 创建新图像
-// 	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
-// 	draw.Draw(dst, dst.Bounds(), &image.Uniform{color.Black}, image.Point{}, draw.Src)
-// 	// 旋转图像
-// 	for y := 0; y < c.Height; y++ {
-// 		for x := 0; x < c.Width; x++ {
-// 			xf := float64(x) - cx
-// 			yf := float64(y) - cy
-// 			newX := int(xf*math.Cos(radian) - yf*math.Sin(radian) + float64(newW)/2)
-// 			newY := int(yf*math.Cos(radian) + xf*math.Sin(radian) + float64(newH)/2)
-// 			if newX >= 0 && newX < newW && newY >= 0 && newY < newH {
-// 				img.Set(newX, newY, img.At(x, y))
-// 			}
-// 		}
-// 	}
-// 	// img = dst
-// 	return c
-// }
-
-// drawDistort 扭曲
-func (c *Captcha) drawDistort(img draw.Image) *Captcha {
-	for y := 0; y < c.Height; y++ {
-		for x := 0; x < c.Width; x++ {
+func drawDistort(img draw.Image, w, h int) {
+	for y := range h {
+		for x := range w {
 			newX := x + int(10*math.Sin(float64(y)/50))
-			if newX >= 0 && newX < c.Width {
+			if newX >= 0 && newX < w {
 				img.Set(x, y, img.At(newX, y))
 			} else {
 				img.Set(x, y, color.Black) // 在边缘之外用黑色填补
 			}
 		}
 	}
-	return c
 }
 
 // drawPoints 绘制干扰点
-func (c *Captcha) drawPoints(img draw.Image) *Captcha {
-	for i := 0; i <= c.Points; i++ {
-		img.Set(rand.Intn(c.Width)+1, rand.Intn(c.Height)+1, randColor())
+func drawPoints(img draw.Image, w, h, points int) {
+	for range points {
+		img.Set(rand.Intn(w)+1, rand.Intn(h)+1, randColor())
 	}
-	return c
 }
 
-func (c *Captcha) drawNoiseLines(img draw.Image) *Captcha {
-	lx := c.Width / 5
-	rx := c.Width - lx
-	for i := 0; i <= c.Lines; i++ {
+func drawNoiseLines(img draw.Image, w, h, lines int) {
+	lx := w / 5
+	rx := w - lx
+	for i := range lines {
 		x := rand.Intn(lx)
-		y := rand.Intn(c.Height)
+		y := rand.Intn(h)
 		if i%3 == 0 {
-			c.drawLine(img, x, y, rand.Intn(lx)+rx, rand.Intn(c.Height)) // 直线
+			drawLine(img, x, y, rand.Intn(lx)+rx, rand.Intn(h)) // 直线
 		} else {
-			c.drawArcLine(img, x, y, c.Width, c.Height) // 弧线
+			drawArcLine(img, x, y, w, h) // 弧线
 		}
 	}
-	return c
 }
 
 // drawLine 画直线 x0,y0 起点 x1,y1终点
 // Bresenham算法(https://zh.wikipedia.org/zh-cn/布雷森漢姆直線演算法#最佳化)
-func (c *Captcha) drawLine(img draw.Image, x0, y0, x1, y1 int) *Captcha {
+func drawLine(img draw.Image, x0, y0, x1, y1 int) {
 	// 判断斜率是否大于1
 	steep := abs(y1-y0) > abs(x1-x0)
 	if steep {
@@ -111,11 +79,9 @@ func (c *Captcha) drawLine(img draw.Image, x0, y0, x1, y1 int) *Captcha {
 			err += dx
 		}
 	}
-	return c
 }
 
-// drawArcLine 绘制弧线
-func (c *Captcha) drawArcLine(img draw.Image, x, y, width, height int) *Captcha {
+func drawArcLine(img draw.Image, x, y, width, height int) {
 	width = rand.Intn(width) + 50
 	height = rand.Intn(height)
 	startAngle, endAngle := rand.Intn(360), rand.Intn(360)
@@ -144,9 +110,8 @@ func (c *Captcha) drawArcLine(img draw.Image, x, y, width, height int) *Captcha 
 		endx = gdCosT[i%360]*width/2048 + x
 		endy = gdSinT[i%360]*height/2048 + y
 		if i != startAngle {
-			c.drawLine(img, lx, ly, endx, endy)
+			drawLine(img, lx, ly, endx, endy)
 		}
 		lx, ly = endx, endy
 	}
-	return c
 }

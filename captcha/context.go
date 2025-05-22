@@ -3,10 +3,8 @@ package captcha
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"image"
 	"image/png"
-	"os"
 	"sync"
 	"time"
 
@@ -50,17 +48,17 @@ func Check(id, code string) (bool, error) {
 }
 
 // Check 验证验证码是否正确
-func CheckOk(id, code string) bool {
-	ok, _ := Check(id, code)
-	return ok
+func CheckOk(id, code string) (ok bool) {
+	ok, _ = Check(id, code)
+	return
 }
 
 func create() (id, result string, img image.Image) {
 	img, data := std.Draw()
 	id = uuid.New().String()
+	data.Expire = time.Now().Add(time.Minute * 5).Unix()
 	captchaMap.Set(id, data)
 	if r := recover(); r != nil {
-		fmt.Fprintln(os.Stderr, r)
 		return create()
 	}
 	return id, data.Result, img

@@ -5,19 +5,23 @@ import (
 	"gorm.io/gorm"
 )
 
-type Modeler interface {
-	TableName() string
-	Defaults() []Modeler
-	GetID() uint64
-	Unique() (string, string)
-}
+type (
+	StringSlice = datatypes.JSONSlice[string]
 
-type Model struct {
-	ID        uint64            `gorm:"primaryKey;autoIncrement;column:id" json:"-"`
-	UUID      datatypes.BinUUID `gorm:"type:varchar(36);unique;column:uuid" json:"uuid"`
-	CreatedAt int64             `gorm:"autoCreateTime;column:created_at" json:"created_at"`
-	UpdatedAt int64             `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
-}
+	Modeler interface {
+		TableName() string
+		Defaults() []Modeler
+		GetID() uint64
+		Unique() (string, string)
+	}
+
+	Model struct {
+		ID        uint64            `gorm:"primaryKey;autoIncrement;column:id" json:"-"`
+		UUID      datatypes.BinUUID `gorm:"type:varchar(36);unique;column:uuid" json:"uuid"`
+		CreatedAt int64             `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+		UpdatedAt int64             `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+	}
+)
 
 func (m *Model) Defaults() []Modeler      { return []Modeler{} }
 func (m *Model) GetID() uint64            { return m.ID }
@@ -27,18 +31,4 @@ func (m *Model) BeforeCreate(tx *gorm.DB) (err error) {
 		m.UUID = datatypes.NewBinUUIDv4()
 	}
 	return
-}
-
-type StringSlice = datatypes.JSONSlice[string]
-
-var models = []Modeler{}
-
-func Register(model ...Modeler) { models = append(models, model...) }
-
-func Models() []any {
-	var result = make([]any, len(models))
-	for i, model := range models {
-		result[i] = model
-	}
-	return result
 }

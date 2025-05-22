@@ -2,9 +2,7 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -52,27 +50,19 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 	if dsnURL.Host == "" {
 		dsnURL.Host = "localhost"
 	}
-	var newLogger gLogger.Interface
+	logger := zapgorm2.New(zap.L())
+	logger.SetAsDefault()
 	if cfg.Debug {
-		newLogger = gLogger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), gLogger.Config{
-			SlowThreshold:             200 * time.Millisecond,
-			IgnoreRecordNotFoundError: true,
-			Colorful:                  true,
-		})
-	} else {
-		logger := zapgorm2.New(zap.L())
-		logger.SetAsDefault()
-		newLogger = logger
+		logger.LogMode(gLogger.Info)
 	}
 	gormCfg := &gorm.Config{
-		Logger:                                   newLogger,
+		Logger:                                   logger,
 		QueryFields:                              true,
 		DisableForeignKeyConstraintWhenMigrating: true,
 		IgnoreRelationshipsWhenMigrating:         true,
+		PrepareStmt:                              !cfg.DisablePrepareStmt,
 	}
-	if cfg.DisablePrepareStmt {
-		gormCfg.PrepareStmt = false
-	}
+
 	//Dialector
 	var dialector gorm.Dialector
 	switch DBType(dsnURL.Scheme) {
@@ -101,8 +91,6 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 		})
 		zap.L().Info("Connecting to DB", zap.String("dsn", dsn))
 	case DBPgSQL:
-		fallthrough
-	default:
 		query := dsnURL.Query()
 		if !query.Has("sslmode") {
 			query.Set("sslmode", "disable")
@@ -115,6 +103,8 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 			DSN:                  dsnURL.String(),
 			PreferSimpleProtocol: true,
 		})
+	default:
+		return nil, fmt.Errorf("unsupported db type: %s", dsnURL.Scheme)
 	}
 	// Open
 	var _wrapper gorm.Dialector
@@ -126,17 +116,19 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 	}
 	db, err := gorm.Open(_wrapper, gormCfg)
 	if err != nil {
-		zap.L().Error("Failed to connect db", zap.String("dsn", dsnURL.String()), zap.Error(err))
+		zap.L().Error("Failed to open db", zap.String("dsn", dsnURL.String()), zap.Error(err))
 		return nil, err
 	}
 	// sql.DB Config
-	sqlDB, err := db.DB()
-	if err != nil {
-		zap.L().Warn("Failed to get sql.db", zap.Error(err))
-	} else {
-		sqlDB.SetMaxIdleConns(cfg.Conn.Idle)                                     // 最大空闲连接
-		sqlDB.SetMaxOpenConns(cfg.Conn.Open)                                     // 最大连接数
-		sqlDB.SetConnMaxLifetime(time.Duration(cfg.Conn.Lifetime) * time.Second) // 最大可复用时间
+	if cfg.Conn != nil {
+		sqlDB, err := db.DB()
+		if err != nil {
+			zap.L().Warn("Failed to get sql.db", zap.Error(err))
+		} else {
+			sqlDB.SetMaxIdleConns(cfg.Conn.Idle)                                     // 最大空闲连接
+			sqlDB.SetMaxOpenConns(cfg.Conn.Open)                                     // 最大连接数
+			sqlDB.SetConnMaxLifetime(time.Duration(cfg.Conn.Lifetime) * time.Second) // 最大可复用时间
+		}
 	}
 	if cfg.Debug {
 		db = db.Debug()
@@ -156,6 +148,7 @@ func Init(cfg *Config, force ...bool) error {
 	return oncePlus.Do(func() (err error) {
 		db, err := connect(cfg)
 		if err != nil {
+			zap.L().Fatal("Failed to connect db", zap.Error(err))
 			return err
 		}
 		std = db
