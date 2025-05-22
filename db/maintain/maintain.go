@@ -1,7 +1,6 @@
 package maintain
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -151,7 +150,6 @@ func Command(dbCfg *db.Config) []*cobra.Command {
 					return err
 				}
 			}
-			fmt.Printf("migrateCmd %+v\n", dbCfg)
 			debug, _ := cmd.Flags().GetBool("debug")
 			if debug {
 				dbCfg.Debug = true
@@ -197,7 +195,6 @@ func Command(dbCfg *db.Config) []*cobra.Command {
 
 	createCmd.Flags().AddFlagSet(flagSet())
 	createCmd.Flags().BoolP("force", "F", false, "Force to delete if exists")
-
 	initCmd.Flags().BoolP("force", "F", false, "Force to delete if exists")
 
 	return []*cobra.Command{

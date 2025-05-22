@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
@@ -95,7 +94,6 @@ func (app *App) preRunE() (err error) {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("app.conf %+v\n", app.conf)
 	}
 	logger, err := log.NewWithConfig(app.conf.GetLog())
 	if err != nil {

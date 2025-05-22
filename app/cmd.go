@@ -133,7 +133,7 @@ func (app *App) injectVersionCmd() {
 				buf.WriteString(" - ")
 				buf.WriteString(app.Description)
 			}
-			fmt.Println(buf.String())
+			fmt.Fprintln(os.Stdout, buf.String())
 		},
 	})
 }
