@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
@@ -134,10 +133,5 @@ func (app *App) Execute(ctx context.Context, cfg Configer) error {
 	viper.AutomaticEnv()
 
 	app.conf = cfg
-	// Execute
-	if err := app.ExecuteE(ctx); err != nil {
-		app.log.Error("Failed to execute app", zap.Error(err))
-		os.Exit(1)
-	}
-	return nil
+	return app.ExecuteE(ctx)
 }
