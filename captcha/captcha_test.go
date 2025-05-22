@@ -17,7 +17,7 @@ func TestDraw(t *testing.T) {
 	}
 	for i := range 3 {
 		img, data := c.Draw()
-		fmt.Printf("%+v\n\n", data)
+		t.Logf("%+v\n\n", data)
 		f, _ := os.OpenFile(fmt.Sprintf("./test%d.png", i), os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
 		png.Encode(f, img)
 		f.Close()

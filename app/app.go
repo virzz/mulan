@@ -80,6 +80,7 @@ func (app *App) SetConfig(config Configer)                   { app.conf = config
 func (app *App) Register(f web.RegisterFunc)                 { app.routers.Register(f) }
 func (app *App) AddCommand(cmd ...*cobra.Command)            { app.rootCmd.AddCommand(cmd...) }
 func (app *App) RootCmd() *cobra.Command                     { return app.rootCmd }
+func (app *App) Conf() Configer                              { return app.conf }
 func (app *App) Routers() *web.Routers                       { return app.routers }
 func (app *App) Run(ctx context.Context, cfg Configer) error { return app.Execute(ctx, cfg) }
 
@@ -129,6 +130,10 @@ func (app *App) Execute(ctx context.Context, cfg Configer) error {
 	// Action
 	if app.action != nil {
 		app.rootCmd.RunE = app.action
+	}
+	err = viper.BindPFlags(app.rootCmd.PersistentFlags())
+	if err != nil {
+		return err
 	}
 	err = viper.BindPFlags(app.rootCmd.Flags())
 	if err != nil {

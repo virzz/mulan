@@ -103,6 +103,10 @@ func New(conf *Config, router *Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 	if len(mwAfter) > 0 {
 		api.Use(mwAfter...)
 	}
-	zap.L().Info("HTTP Server Listening on : " + conf.GetEndpoint())
+	zap.L().Info("HTTP Server Listening on",
+		zap.String("endpoint", conf.GetEndpoint()),
+		zap.String("host", conf.Host),
+		zap.Int("port", conf.Port),
+	)
 	return &http.Server{Addr: conf.Addr(), Handler: engine}, nil
 }

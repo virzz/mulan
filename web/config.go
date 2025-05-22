@@ -20,24 +20,38 @@ func FlagSet(defaultPort int) *pflag.FlagSet {
 	fs.Bool("http.metrics", false, "Enable Metrics")
 	fs.StringSlice("http.origins", []string{"*"}, "HTTP CORS: Allow Origins")
 	fs.StringSlice("http.headers", []string{"Authorization"}, "HTTP CORS: Allow Headers")
+
+	fs.Bool("token.disable", false, "Token Disable")
+	fs.String("token.system", "", "Token System Token")
+	fs.String("token.keyname", "", "Token APIKey Name")
+	fs.String("token.apikey", "", "Token APIKey")
 	return fs
 }
 
-//go:generate structx -struct Config
-type Config struct {
-	System    string   `json:"system" yaml:"system"`
-	Prefix    string   `json:"prefix" yaml:"prefix" default:"/api"`
-	Endpoint  string   `json:"endpoint" yaml:"endpoint"`
-	Host      string   `json:"host" yaml:"host" default:"127.0.0.1"`
-	Port      int      `json:"port" yaml:"port" default:"8080"`
-	Origins   []string `json:"origins" yaml:"origins"`
-	Headers   []string `json:"headers" yaml:"headers"`
-	Debug     bool     `json:"debug" yaml:"debug"`
-	Pprof     bool     `json:"pprof" yaml:"pprof"`
-	RequestID bool     `json:"requestid" yaml:"requestid"`
-	Metrics   bool     `json:"metrics" yaml:"metrics"`
-	Auth      bool     `json:"auth" yaml:"auth"`
-}
+type (
+	Token struct {
+		Disable bool   `json:"disable" yaml:"disable"`
+		KeyName string `json:"keyname" yaml:"keyname"`
+		APIKey  string `json:"apikey" yaml:"apikey"`
+		System  string `json:"system" yaml:"system"`
+	}
+
+	//go:generate structx -struct Config
+	Config struct {
+		System    string   `json:"system" yaml:"system"`
+		Prefix    string   `json:"prefix" yaml:"prefix" default:"/api"`
+		Endpoint  string   `json:"endpoint" yaml:"endpoint"`
+		Host      string   `json:"host" yaml:"host" default:"127.0.0.1"`
+		Port      int      `json:"port" yaml:"port" default:"8080"`
+		Origins   []string `json:"origins" yaml:"origins"`
+		Headers   []string `json:"headers" yaml:"headers"`
+		Debug     bool     `json:"debug" yaml:"debug"`
+		Pprof     bool     `json:"pprof" yaml:"pprof"`
+		RequestID bool     `json:"requestid" yaml:"requestid"`
+		Metrics   bool     `json:"metrics" yaml:"metrics"`
+		Auth      bool     `json:"auth" yaml:"auth"`
+	}
+)
 
 func (c *Config) GetEndpoint() string {
 	if c.Endpoint == "" {
