@@ -1,19 +1,5 @@
 package web
 
-func (s *Config) Version() string { return s.version }
-
-func (s *Config) Commit() string { return s.commit }
-
-func (s *Config) WithVersion(v string) *Config {
-	s.version = v
-	return s
-}
-
-func (s *Config) WithCommit(v string) *Config {
-	s.commit = v
-	return s
-}
-
 func (s *Config) WithEndpoint(v string) *Config {
 	s.Endpoint = v
 	return s

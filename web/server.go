@@ -52,12 +52,11 @@ func New(conf *Config, router *Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 		}),
 	)
 
-	versionFn := func(c *gin.Context) { c.String(200, conf.version+" "+conf.commit) }
-	engine.GET("/version", versionFn)
-	engine.GET("/health", HealthHandler)
+	engine.GET("/version", versionHandler)
+	engine.GET("/health", versionHandler)
 	if conf.Prefix != "" && conf.Prefix != "/" {
-		engine.GET(conf.Prefix+"/version", versionFn)
-		engine.GET(conf.Prefix+"/health", HealthHandler)
+		engine.GET(conf.Prefix+"/version", versionHandler)
+		engine.GET(conf.Prefix+"/health", versionHandler)
 	}
 
 	if conf.Metrics {

@@ -1,7 +1,6 @@
 package rsp_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/go-json-experiment/json"
@@ -15,10 +14,10 @@ func jsonString(v any) string {
 	return string(buf)
 }
 func TestMsg(t *testing.T) {
-	fmt.Println(jsonString(rsp.M("test")))
-	fmt.Println(jsonString(rsp.OK()))
-	fmt.Println(jsonString(rsp.M("aaaaaaaaaaaaaaaa")))
-	fmt.Println(jsonString(rsp.OK()))
-	fmt.Println(jsonString(rsp.E(code.DatabaseUnknown, "DatabaseUnknown")))
-	fmt.Println(jsonString(rsp.OK()))
+	t.Log(jsonString(rsp.M("test")))
+	t.Log(jsonString(rsp.OK()))
+	t.Log(jsonString(rsp.M("aaaaaaaaaaaaaaaa")))
+	t.Log(jsonString(rsp.OK()))
+	t.Log(jsonString(rsp.E(code.DatabaseUnknown, "DatabaseUnknown")))
+	t.Log(jsonString(rsp.OK()))
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"go.uber.org/zap/zapcore"
@@ -36,7 +37,7 @@ func (w *HTTPWriter) Sync() error {
 func (w *HTTPWriter) post(line []byte) error {
 	rsp, err := w.client.Post(w.url, "application/json", bytes.NewBuffer(line))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err.Error())
 		return err
 	}
 	defer rsp.Body.Close()

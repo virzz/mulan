@@ -7,14 +7,13 @@ import (
 	"time"
 
 	cmap "github.com/orcaman/concurrent-map/v2"
+	"github.com/virzz/mulan/utils/once"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gLogger "gorm.io/gorm/logger"
 	zapgorm2 "moul.io/zapgorm2"
-
-	"github.com/virzz/mulan/utils/once"
 )
 
 var (
@@ -44,9 +43,16 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 		zap.L().Error("parse dsn fail:", zap.Error(err))
 		return nil, err
 	}
-	if cfg.User != "" || cfg.Pass != "" {
-		dsnURL.User = url.UserPassword(cfg.User, cfg.Pass)
+	_user := dsnURL.User.Username()
+	_pass, _ := dsnURL.User.Password()
+	if cfg.User != "" {
+		_user = cfg.User
 	}
+	if cfg.Pass != "" {
+		_pass = cfg.Pass
+	}
+	dsnURL.User = url.UserPassword(_user, _pass)
+
 	if dsnURL.Host == "" {
 		dsnURL.Host = "localhost"
 	}
@@ -104,7 +110,7 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 			PreferSimpleProtocol: true,
 		})
 	default:
-		return nil, fmt.Errorf("unsupported db type: %s", dsnURL.Scheme)
+		return nil, fmt.Errorf("unsupported db type: '%s'", dsnURL.Scheme)
 	}
 	// Open
 	var _wrapper gorm.Dialector

@@ -8,7 +8,11 @@ import (
 	"github.com/virzz/mulan/rsp"
 )
 
-func HealthHandler(c *gin.Context) { c.Status(200) }
+var versionHandler gin.HandlerFunc = func(c *gin.Context) { c.Status(200) }
+
+func SetVersionHandler(version, commit string) {
+	versionHandler = func(c *gin.Context) { c.String(200, version+" "+commit) }
+}
 
 func ErrCodeHandler(c *gin.Context) { c.JSON(200, rsp.S(code.Codes)) }
 

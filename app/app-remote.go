@@ -12,9 +12,11 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/pkg/errors"
+	slogzap "github.com/samber/slog-zap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -54,7 +56,7 @@ func (app *App) EnableRemote(project string, publicKey ...string) error {
 	return nil
 }
 
-func (app *App) ExecuteE(ctx context.Context) error {
+func (app *App) preInitRemote() {
 	if app.remote.remoteConfig {
 		app.remote.secretKey = make([]byte, 32)
 		io.ReadFull(rand.Reader, app.remote.secretKey)
@@ -74,46 +76,66 @@ func (app *App) ExecuteE(ctx context.Context) error {
 		}
 		return errors.New("not an RSA public key")
 	}
+}
+func (app *App) postInitRemote() {
+	configLoaded := false
+	if app.remote.remoteConfig {
+		remoteEndpoint, _ := cmd.Flags().GetString("remote-endpoint")
+		if remoteEndpoint == "" {
+			remoteEndpoint = app.remote.remoteEndpoint
+		}
+		if remoteEndpoint == "" {
+			remoteEndpoint = defaultRemoteEndpoint
+		}
+		key := fmt.Sprintf("/%s/%s/%s/%s", app.remote.project, app.ID, app.Version, instance)
+		err = viper.AddSecureRemoteProvider("virzz", remoteEndpoint, key, string(app.remote.secretKey))
+		if err != nil {
+			app.log.Warn("Failed to add remote config provider", zap.Error(err))
+		} else {
+			err = viper.ReadRemoteConfig()
+			if err != nil {
+				app.log.Warn("Failed to load remote config", zap.Error(err))
+			} else {
+				configLoaded = true
+			}
+		}
+	}
+	if !configLoaded {
+		if err = viper.ReadInConfig(); err != nil {
+			app.log.Warn("Failed to read in config", zap.Error(err))
+			viper.SetConfigType("yaml")
+			if err = viper.ReadInConfig(); err != nil {
+				app.log.Warn("Failed to read in config", zap.Error(err))
+			}
+		}
+	}
+}
+
+func (app *App) ExecuteE(ctx context.Context) error {
+	app.preInitRemote()
 	app.rootCmd.PreRunE = func(cmd *cobra.Command, args []string) (err error) {
-		instance, _ := cmd.Flags().GetString("instance")
-		config, _ := cmd.Flags().GetString("config")
-		if config != "" {
-			viper.SetConfigFile(config)
+		fs := cmd.Flags()
+		verbose, _ := fs.GetCount("verbose")
+		instance, _ := fs.GetString("instance")
+		configPath, _ := fs.GetString("config")
+		if verbose > 1 {
+			viper.SetOptions(
+				viper.WithLogger(
+					slog.New(
+						slogzap.Option{Level: slog.LevelDebug, Logger: app.log.Named("viper")}.
+							NewZapHandler(),
+					),
+				),
+			)
+		}
+		if configPath != "" {
+			viper.SetConfigFile(configPath)
 		} else {
 			viper.SetConfigType("json")
 			viper.AddConfigPath(".")
 			viper.SetConfigName("config_" + instance)
 		}
-		configLoaded := false
-		if app.remote.remoteConfig {
-			remoteEndpoint, _ := cmd.Flags().GetString("remote-endpoint")
-			if remoteEndpoint == "" {
-				remoteEndpoint = app.remote.remoteEndpoint
-			}
-			if remoteEndpoint == "" {
-				remoteEndpoint = defaultRemoteEndpoint
-			}
-			key := fmt.Sprintf("/%s/%s/%s/%s", app.remote.project, app.ID, app.Version, instance)
-			err = viper.AddSecureRemoteProvider("virzz", remoteEndpoint, key, string(app.remote.secretKey))
-			if err != nil {
-				app.log.Warn("Failed to add remote config provider", zap.Error(err))
-			} else {
-				err = viper.ReadRemoteConfig()
-				if err != nil {
-					app.log.Warn("Failed to load remote config", zap.Error(err))
-				} else {
-					configLoaded = true
-				}
-			}
-		}
-		if !configLoaded {
-			if err = viper.ReadInConfig(); err != nil {
-				viper.SetConfigType("yaml")
-				if err = viper.ReadInConfig(); err != nil {
-					return err
-				}
-			}
-		}
+		app.postInitRemote()
 		if app.conf != nil {
 			err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
 			if err != nil {
@@ -121,7 +143,21 @@ func (app *App) ExecuteE(ctx context.Context) error {
 				return err
 			}
 		}
-		return app.preRunE(cmd.Context())
+		if verbose >= 2 {
+			viper.Debug()
+		}
+		return app.preRunE()
 	}
+
+	if !disableConfigCmd {
+		app.injectConfigCmd()
+	}
+	if app.validate != nil {
+		app.injectValidateCmd()
+	}
+	if enableMaintainCmd {
+		app.injectMaintainCmd()
+	}
+
 	return app.rootCmd.ExecuteContext(ctx)
 }

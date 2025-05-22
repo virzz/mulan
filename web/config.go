@@ -25,9 +25,6 @@ func FlagSet(defaultPort int) *pflag.FlagSet {
 
 //go:generate structx -struct Config
 type Config struct {
-	version string `json:"-" yaml:"-"`
-	commit  string `json:"-" yaml:"-"`
-
 	System    string   `json:"system" yaml:"system"`
 	Prefix    string   `json:"prefix" yaml:"prefix" default:"/api"`
 	Endpoint  string   `json:"endpoint" yaml:"endpoint"`

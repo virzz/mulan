@@ -32,35 +32,30 @@ type (
 
 func FlagSet() *pflag.FlagSet {
 	fs := pflag.NewFlagSet("log", pflag.ContinueOnError)
-	fs.Bool("log.is_dev", false, "is dev")
+	fs.Bool("log.dev", false, "use DevelopmentEncoder")
 	fs.String("log.level", "info", "log level")
 	fs.String("log.file", "", "log file")
 	return fs
 }
 
-var atomicLevel = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-
-func SetLevel(lvl int8) { atomicLevel.SetLevel(zapcore.Level(lvl)) }
-
-func New(name ...string) (*zap.Logger, error) { return NewWithConfig(&Config{Level: "info"}, name...) }
+func New(lvl zapcore.Level, isDev bool, name ...string) (*zap.Logger, error) {
+	cfg := &Config{Level: lvl.String(), IsDev: isDev}
+	return NewWithConfig(cfg, name...)
+}
 
 func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
-	if cfg == nil {
-		cfg = &Config{Level: "info"}
-	}
-	lvl, err := zapcore.ParseLevel(cfg.Level)
-	if err != nil {
-		lvl = zapcore.InfoLevel
-	}
-	atomicLevel.SetLevel(lvl)
 	var encoder zapcore.Encoder
 	if cfg.IsDev {
 		encoder = zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 	} else {
 		encoder = zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig())
 	}
+	lvl, err := zapcore.ParseLevel(cfg.Level)
+	if err != nil {
+		lvl = zapcore.InfoLevel
+	}
 	cores := []zapcore.Core{
-		zapcore.NewCore(encoder, zapcore.Lock(os.Stdout), atomicLevel),
+		zapcore.NewCore(encoder, zapcore.Lock(os.Stdout), lvl),
 	}
 	for _, h := range cfg.Http {
 		lvl, err := zapcore.ParseLevel(h.Level)
@@ -74,10 +69,6 @@ func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
 		))
 	}
 	if cfg.File != "" {
-		lvl, err := zapcore.ParseLevel(cfg.Level)
-		if err != nil {
-			lvl = zapcore.InfoLevel
-		}
 		err = os.MkdirAll(filepath.Dir(cfg.File), 0755)
 		if err != nil {
 			return nil, err

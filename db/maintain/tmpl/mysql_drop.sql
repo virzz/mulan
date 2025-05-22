@@ -1,0 +1,2 @@
+DROP DATABASE IF EXISTS `{{.Name}}`;
+DROP USER IF EXISTS '{{.User}}'@'%';

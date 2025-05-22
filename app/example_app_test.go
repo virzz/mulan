@@ -51,8 +51,8 @@ func Example() {
 	std.SetAction(func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
-		httpCfg := Conf.GetHTTP()
-		httpCfg.WithRequestID(true).WithVersion(std.Version).WithCommit(std.Commit)
+		httpCfg := Conf.GetHTTP().WithRequestID(true)
+		web.SetVersionHandler(std.Version, std.Commit)
 		httpSrv, err := web.New(httpCfg, std.Routers(), nil, nil)
 		if err != nil {
 			return err
