@@ -43,6 +43,7 @@ func Example() {
 	std.SetValidate(func() error {
 		return nil
 	})
+	web.SetVersionHandler(meta.Name, meta.Version, meta.Commit)
 	routers := web.NewRouters()
 	routers.Handle("GET", "/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Hello, World!"})
@@ -52,7 +53,6 @@ func Example() {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
 		httpCfg := Conf.GetHTTP().WithRequestID(true)
-		web.SetVersionHandler(std.Version, std.Commit)
 		httpSrv, err := web.New(httpCfg, std.Routers(), nil, nil)
 		if err != nil {
 			return err
