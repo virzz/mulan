@@ -35,8 +35,11 @@ func New(conf *Config, router *Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 			TimeFormat: time.RFC3339,
 			UTC:        true,
 			Skipper: func(c *gin.Context) bool {
-				return c.Request.Response.StatusCode == 404 ||
-					c.Request.URL.Path == "/health" ||
+				if c.Request.Response != nil &&
+					c.Request.Response.StatusCode == 404 {
+					return true
+				}
+				return c.Request.URL.Path == "/health" ||
 					c.Request.URL.Path == "/version" ||
 					c.Request.URL.Path == "/metrics"
 			},
