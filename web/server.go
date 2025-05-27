@@ -34,6 +34,12 @@ func New(conf *Config, router *Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 		ginzap.GinzapWithConfig(ginLog, &ginzap.Config{
 			TimeFormat: time.RFC3339,
 			UTC:        true,
+			Skipper: func(c *gin.Context) bool {
+				return c.Request.Response.StatusCode == 404 ||
+					c.Request.URL.Path == "/health" ||
+					c.Request.URL.Path == "/version" ||
+					c.Request.URL.Path == "/metrics"
+			},
 			Context: func(c *gin.Context) []zap.Field {
 				ctx := c.Request.Context()
 				fields := []zapcore.Field{

@@ -45,10 +45,11 @@ func New(lvl zapcore.Level, isDev bool, name ...string) (*zap.Logger, error) {
 
 func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
 	var encoder zapcore.Encoder
+	var prodCfg = zap.NewProductionEncoderConfig()
 	if cfg.IsDev {
 		encoder = zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 	} else {
-		encoder = zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig())
+		encoder = zapcore.NewConsoleEncoder(prodCfg)
 	}
 	lvl, err := zapcore.ParseLevel(cfg.Level)
 	if err != nil {
@@ -63,7 +64,7 @@ func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
 			lvl = zapcore.InfoLevel
 		}
 		cores = append(cores, zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.NewJSONEncoder(prodCfg),
 			newHTTPWriter(h.URL),
 			lvl,
 		))
@@ -78,7 +79,7 @@ func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
 			return nil, err
 		}
 		cores = append(cores, zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.NewJSONEncoder(prodCfg),
 			zapcore.Lock(f),
 			lvl,
 		))
