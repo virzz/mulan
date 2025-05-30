@@ -45,11 +45,12 @@ func New(lvl zapcore.Level, isDev bool, name ...string) (*zap.Logger, error) {
 
 func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
 	var encoder zapcore.Encoder
-	var prodCfg = zap.NewProductionEncoderConfig()
 	if cfg.IsDev {
 		encoder = zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 	} else {
-		encoder = zapcore.NewConsoleEncoder(prodCfg)
+		_prodCfg := zap.NewProductionEncoderConfig()
+		_prodCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+		encoder = zapcore.NewConsoleEncoder(_prodCfg)
 	}
 	lvl, err := zapcore.ParseLevel(cfg.Level)
 	if err != nil {
@@ -58,6 +59,7 @@ func NewWithConfig(cfg *Config, name ...string) (*zap.Logger, error) {
 	cores := []zapcore.Core{
 		zapcore.NewCore(encoder, zapcore.Lock(os.Stdout), lvl),
 	}
+	var prodCfg = zap.NewProductionEncoderConfig()
 	for _, h := range cfg.Http {
 		lvl, err := zapcore.ParseLevel(h.Level)
 		if err != nil {
