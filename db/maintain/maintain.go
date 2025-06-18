@@ -165,6 +165,16 @@ func Command(dbCfg *db.Config) []*cobra.Command {
 		Use:   "init",
 		Short: "Init database default data",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			preRunE := cmd.Root().PreRunE
+			if preRunE != nil {
+				if err := preRunE(cmd, args); err != nil {
+					return err
+				}
+			}
+			debug, _ := cmd.Flags().GetBool("debug")
+			if debug {
+				dbCfg.Debug = true
+			}
 			if err = db.Init(dbCfg); err != nil {
 				return err
 			}
