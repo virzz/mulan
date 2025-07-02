@@ -18,7 +18,7 @@ var (
 	std        *Captcha
 )
 
-func init() {
+func Init() {
 	std, _ = New(defaultConfig)
 	go once.Do(func() {
 		for {
@@ -54,6 +54,9 @@ func CheckOk(id, code string) (ok bool) {
 }
 
 func create() (id, result string, img image.Image) {
+	if std == nil {
+		panic("plz init")
+	}
 	img, data := std.Draw()
 	id = uuid.New().String()
 	data.Expire = time.Now().Add(time.Minute * 5).Unix()
