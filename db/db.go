@@ -103,9 +103,6 @@ func connect(cfg *Config, wrapper ...*DialectorWrapper) (*gorm.DB, error) {
 		if !query.Has("sslmode") {
 			query.Set("sslmode", "disable")
 		}
-		if !query.Has("TimeZone") {
-			query.Set("TimeZone", "Asia/Shanghai")
-		}
 		dsnURL.RawQuery = query.Encode()
 		dialector = postgres.New(postgres.Config{
 			DSN:                  dsnURL.String(),
