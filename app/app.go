@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/virzz/mulan/db"
 	"github.com/virzz/mulan/web"
 )
 
@@ -29,15 +28,14 @@ type (
 	}
 	App struct {
 		*Meta
-		rootCmd     *cobra.Command
-		action      ActionFunc
-		routers     *web.Routers
-		preInit     PreInitFunc
-		validate    ValidateFunc
-		conf        Configer
-		log         *zap.Logger
-		remote      *Remote //lint:ignore U1000 remote config
-		maintainCmd map[string]*db.Config
+		rootCmd  *cobra.Command
+		action   ActionFunc
+		routers  *web.Routers
+		preInit  PreInitFunc
+		validate ValidateFunc
+		conf     Configer
+		log      *zap.Logger
+		remote   *Remote //lint:ignore U1000 remote config
 	}
 )
 
@@ -48,10 +46,9 @@ var (
 
 func New(meta *Meta) *App {
 	std = &App{
-		Meta:        meta,
-		conf:        &Config{},
-		validate:    nil,
-		maintainCmd: map[string]*db.Config{},
+		Meta:     meta,
+		conf:     &Config{},
+		validate: nil,
 		rootCmd: &cobra.Command{
 			CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
 			SilenceErrors:     true,
@@ -64,12 +61,6 @@ func New(meta *Meta) *App {
 	return std
 }
 
-func (app *App) AddMaintainCmd(name string, cfg *db.Config) {
-	if app.maintainCmd == nil {
-		app.maintainCmd = map[string]*db.Config{}
-	}
-	app.maintainCmd[name] = cfg
-}
 func (app *App) DisableConfigCmd()                           { disableConfigCmd = true }
 func (app *App) SetPreInit(f PreInitFunc)                    { app.preInit = f }
 func (app *App) SetValidate(f ValidateFunc)                  { app.validate = f }

@@ -10,8 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/virzz/mulan/db"
-	"github.com/virzz/mulan/db/maintain"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -19,12 +17,6 @@ import (
 var (
 	disableConfigCmd = false
 )
-
-func (app *App) injectMaintainCmd(name string, dbCfg *db.Config) {
-	cmd := &cobra.Command{GroupID: "maintain", Use: "m-" + name}
-	cmd.AddCommand(maintain.Command(dbCfg)...)
-	app.rootCmd.AddCommand(cmd)
-}
 
 func (app *App) injectConfigCmd() {
 	if slices.ContainsFunc(app.rootCmd.Commands(),

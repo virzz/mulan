@@ -65,11 +65,5 @@ func (app *App) ExecuteE(ctx context.Context) (err error) {
 	if app.validate != nil {
 		app.injectValidateCmd()
 	}
-	if app.maintainCmd != nil {
-		app.rootCmd.AddGroup(&cobra.Group{ID: "maintain", Title: "Maintain Commands"})
-		for name, cfg := range app.maintainCmd {
-			app.injectMaintainCmd(name, cfg)
-		}
-	}
 	return app.rootCmd.ExecuteContext(ctx)
 }
