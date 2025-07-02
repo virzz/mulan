@@ -44,7 +44,6 @@ func (app *App) ExecuteE(ctx context.Context) (err error) {
 		}
 		err = viper.ReadInConfig()
 		if err != nil {
-			app.log.Warn("Failed to read in config", zap.Error(err))
 			viper.SetConfigType("yaml")
 			err = viper.ReadInConfig()
 			if err != nil {
