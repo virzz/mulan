@@ -6,7 +6,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/virzz/mulan/db"
-	"github.com/virzz/mulan/log"
 	"github.com/virzz/mulan/rdb"
 	"github.com/virzz/mulan/web"
 )
@@ -17,7 +16,6 @@ type (
 		GetHTTP() *web.Config
 		GetDB() *db.Config
 		GetRDB() *rdb.Config
-		GetLog() *log.Config
 		GetToken() *web.Token
 	}
 	Config struct {
@@ -25,7 +23,6 @@ type (
 		Token web.Token  `json:"token" yaml:"token"`
 		DB    db.Config  `json:"db" yaml:"db"`
 		RDB   rdb.Config `json:"rdb" yaml:"rdb"`
-		Log   log.Config `json:"log" yaml:"log"`
 	}
 )
 
@@ -34,12 +31,6 @@ func (c *Config) GetHTTP() *web.Config { return &c.HTTP }
 func (c *Config) GetToken() *web.Token { return &c.Token }
 func (c *Config) GetDB() *db.Config    { return &c.DB }
 func (c *Config) GetRDB() *rdb.Config  { return &c.RDB }
-func (c *Config) GetLog() *log.Config {
-	if c.Log.Level == "" {
-		c.Log.Level = "info"
-	}
-	return &c.Log
-}
 
 func (c *Config) Template(typ ...string) string {
 	_c := &Config{

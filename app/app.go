@@ -9,10 +9,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/virzz/mulan/db"
-	"github.com/virzz/mulan/log"
 	"github.com/virzz/mulan/web"
 )
 
@@ -77,6 +75,7 @@ func (app *App) SetPreInit(f PreInitFunc)                    { app.preInit = f }
 func (app *App) SetValidate(f ValidateFunc)                  { app.validate = f }
 func (app *App) SetRouters(routers *web.Routers)             { app.routers = routers }
 func (app *App) SetConfig(config Configer)                   { app.conf = config }
+func (app *App) SetLogger(log *zap.Logger)                   { app.log = log }
 func (app *App) Register(f web.RegisterFunc)                 { app.routers.Register(f) }
 func (app *App) AddCommand(cmd ...*cobra.Command)            { app.rootCmd.AddCommand(cmd...) }
 func (app *App) RootCmd() *cobra.Command                     { return app.rootCmd }
@@ -96,11 +95,6 @@ func (app *App) preRunE() (err error) {
 			return err
 		}
 	}
-	logger, err := log.NewWithConfig(app.conf.GetLog())
-	if err != nil {
-		return err
-	}
-	app.log = logger.Named("app")
 	return nil
 }
 
@@ -115,18 +109,16 @@ func (app *App) SetAction(action ActionFunc) {
 		return action(cmd, args)
 	}
 }
-func (app *App) Execute(ctx context.Context, cfg Configer) error {
+func (app *App) Execute(ctx context.Context, cfg Configer) (err error) {
 	// Config
 	app.rootCmd.PersistentFlags().CountP("verbose", "v", "verbose mode")
 	app.rootCmd.PersistentFlags().String("instance", "default", "instance name")
 	app.rootCmd.PersistentFlags().String("config", "", "config file")
-	app.rootCmd.PersistentFlags().AddFlagSet(log.FlagSet())
-	logger, err := log.New(zapcore.DPanicLevel, true, app.Name)
+
+	app.log, err = zap.NewProduction()
 	if err != nil {
 		return err
 	}
-	defer logger.Sync()
-	app.log = logger.Named("app")
 	// Action
 	if app.action != nil {
 		app.rootCmd.RunE = app.action
