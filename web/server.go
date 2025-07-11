@@ -114,3 +114,5 @@ func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 	)
 	return &http.Server{Addr: conf.Addr(), Handler: engine}, nil
 }
+
+func Routes() []gin.RouteInfo { return engine.Routes() }
