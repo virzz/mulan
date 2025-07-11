@@ -9,12 +9,13 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	httpSrv, err := web.New(&web.Config{
+	cfg := &web.Config{
 		Host:    "127.0.0.1",
 		Port:    3003,
 		Pprof:   true,
 		Metrics: true,
-	}, nil, nil, nil)
+	}
+	httpSrv, err := web.New(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 		return

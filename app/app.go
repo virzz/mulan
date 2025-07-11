@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-
-	"github.com/virzz/mulan/web"
 )
 
 type (
@@ -21,6 +19,7 @@ type (
 	Meta struct {
 		ID          string
 		Name        string
+		CNName      string
 		Description string
 		Version     string
 		Commit      string
@@ -30,7 +29,6 @@ type (
 		*Meta
 		rootCmd  *cobra.Command
 		action   ActionFunc
-		routers  *web.Routers
 		preInit  PreInitFunc
 		validate ValidateFunc
 		conf     Configer
@@ -64,14 +62,11 @@ func New(meta *Meta) *App {
 func (app *App) DisableConfigCmd()                           { disableConfigCmd = true }
 func (app *App) SetPreInit(f PreInitFunc)                    { app.preInit = f }
 func (app *App) SetValidate(f ValidateFunc)                  { app.validate = f }
-func (app *App) SetRouters(routers *web.Routers)             { app.routers = routers }
 func (app *App) SetConfig(config Configer)                   { app.conf = config }
 func (app *App) SetLogger(log *zap.Logger)                   { app.log = log }
-func (app *App) Register(f web.RegisterFunc)                 { app.routers.Register(f) }
 func (app *App) AddCommand(cmd ...*cobra.Command)            { app.rootCmd.AddCommand(cmd...) }
 func (app *App) RootCmd() *cobra.Command                     { return app.rootCmd }
 func (app *App) Conf() Configer                              { return app.conf }
-func (app *App) Routers() *web.Routers                       { return app.routers }
 func (app *App) Run(ctx context.Context, cfg Configer) error { return app.Execute(ctx, cfg) }
 
 func (app *App) AddFlagSet(fs ...*pflag.FlagSet) {
@@ -100,6 +95,7 @@ func (app *App) SetAction(action ActionFunc) {
 		return action(cmd, args)
 	}
 }
+
 func (app *App) Execute(ctx context.Context, cfg Configer) (err error) {
 	// Config
 	app.rootCmd.PersistentFlags().CountP("verbose", "v", "verbose mode")

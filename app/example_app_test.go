@@ -44,16 +44,18 @@ func Example() {
 		return nil
 	})
 	web.SetVersionHandler(meta.Name, meta.Version, meta.Commit)
-	routers := web.NewRouters()
-	routers.Handle("GET", "/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "Hello, World!"})
-	})
-	std.SetRouters(routers)
+
+	applyFunc := func(api *gin.RouterGroup) {
+		api.Handle("GET", "/", func(c *gin.Context) {
+			c.JSON(200, gin.H{"message": "Hello, World!"})
+		})
+	}
+
 	std.SetAction(func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
 		httpCfg := Conf.GetHTTP().WithRequestID(true)
-		httpSrv, err := web.New(httpCfg, std.Routers(), nil, nil)
+		httpSrv, err := web.New(httpCfg, applyFunc)
 		if err != nil {
 			return err
 		}

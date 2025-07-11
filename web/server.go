@@ -21,7 +21,7 @@ import (
 
 var engine *gin.Engine
 
-func New(conf *Config, router *Routers, mwBefore, mwAfter []gin.HandlerFunc) (*http.Server, error) {
+func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 	if conf.Debug {
 		gin.SetMode(gin.DebugMode)
 	} else {
@@ -102,16 +102,11 @@ func New(conf *Config, router *Routers, mwBefore, mwAfter []gin.HandlerFunc) (*h
 	}
 	// Register Router
 	api := engine.Group(conf.Prefix)
-	// Register Before Middleware
-	if len(mwBefore) > 0 {
-		api.Use(mwBefore...)
+
+	if applyFunc != nil {
+		applyFunc(api)
 	}
-	// Register Routers
-	router.Apply(api)
-	// Register After Middleware
-	if len(mwAfter) > 0 {
-		api.Use(mwAfter...)
-	}
+
 	zap.L().Info("HTTP Server Listening on",
 		zap.String("endpoint", conf.GetEndpoint()),
 		zap.String("host", conf.Host),
