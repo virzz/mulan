@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -35,7 +34,7 @@ func (v *defaultValidator) ValidateStruct(obj any) error {
 	case reflect.Slice, reflect.Array:
 		count := value.Len()
 		validateRet := make(binding.SliceValidationError, 0)
-		for i := 0; i < count; i++ {
+		for i := range count {
 			if err := v.ValidateStruct(value.Index(i).Interface()); err != nil {
 				validateRet = append(validateRet, err)
 			}
@@ -67,21 +66,21 @@ func (v *defaultValidator) lazyinit() {
 	})
 }
 
-func ShouldBind(c *gin.Context, obj any) error {
+func Bind(c *gin.Context, obj any) error {
 	err := binding.Default(c.Request.Method, c.ContentType()).
 		Bind(c.Request, obj)
 	if err != nil {
-		zap.L().Warn("Failed to bind", zap.Error(err))
+		return c.Error(err)
 	}
 	if len(c.Params) > 0 {
 		if err := c.ShouldBindUri(obj); err != nil {
-			zap.L().Warn("Failed to bind uri", zap.Error(err))
+			return c.Error(err)
 		}
 	}
 	return Validator.ValidateStruct(obj)
 }
 
-func Bind(c *gin.Context, obj any) error {
+func ShouldBind(c *gin.Context, obj any) error {
 	binding.Default(c.Request.Method, c.ContentType()).Bind(c.Request, obj)
 	if len(c.Params) > 0 {
 		c.ShouldBindUri(obj)
