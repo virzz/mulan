@@ -42,11 +42,9 @@ func (app *App) ExecuteE(ctx context.Context) (err error) {
 			viper.AddConfigPath(".")
 			viper.SetConfigName("config_" + instance)
 		}
-		err = viper.ReadInConfig()
-		if err != nil {
+		if err = viper.ReadInConfig(); err != nil {
 			viper.SetConfigType("yaml")
-			err = viper.ReadInConfig()
-			if err != nil {
+			if err = viper.ReadInConfig(); err != nil && verbose >= 1 {
 				app.log.Warn("Failed to read in config", zap.Error(err))
 			}
 		}
