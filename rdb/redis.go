@@ -7,8 +7,6 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-
-	"github.com/virzz/mulan/utils/once"
 )
 
 type DebugHook struct{}
@@ -36,12 +34,11 @@ func (DebugHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Proce
 }
 
 var (
-	rdb      *redis.Client
-	oncePlus once.OncePlus
-	Nil      = redis.Nil
+	rdb *redis.Client
+	Nil = redis.Nil
 )
 
-func connect(cfg *Config) error {
+func New(cfg *Config) (*redis.Client, error) {
 	rdb = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
 		Password: cfg.Pass,
@@ -54,16 +51,9 @@ func connect(cfg *Config) error {
 	if cfg.Debug {
 		rdb.AddHook(DebugHook{})
 	}
-	return rdb.Ping(context.Background()).Err()
-}
-
-func Init(cfg *Config, force ...bool) error {
-	if len(force) > 0 && force[0] {
-		return connect(cfg)
+	err := rdb.Ping(context.Background()).Err()
+	if err != nil {
+		return nil, err
 	}
-	return oncePlus.Do(func() (err error) {
-		return connect(cfg)
-	})
+	return rdb, nil
 }
-
-func R() *redis.Client { return rdb }
