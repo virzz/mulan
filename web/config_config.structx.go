@@ -15,11 +15,6 @@ func (s *Config) WithPort(v int) *Config {
 	return s
 }
 
-func (s *Config) WithOrigins(v []string) *Config {
-	s.Origins = v
-	return s
-}
-
 func (s *Config) WithDebug(v bool) *Config {
 	s.Debug = v
 	return s
@@ -40,22 +35,7 @@ func (s *Config) WithMetrics(v bool) *Config {
 	return s
 }
 
-func (s *Config) WithSystem(v string) *Config {
-	s.System = v
-	return s
-}
-
 func (s *Config) WithPrefix(v string) *Config {
 	s.Prefix = v
-	return s
-}
-
-func (s *Config) WithHeaders(v []string) *Config {
-	s.Headers = v
-	return s
-}
-
-func (s *Config) WithAuth(v bool) *Config {
-	s.Auth = v
 	return s
 }

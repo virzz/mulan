@@ -28,6 +28,6 @@ func TestNew(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(10 * time.Second)
-
+	<-time.After(3 * time.Second)
+	httpSrv.Close()
 }

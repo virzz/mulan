@@ -1,3 +1,6 @@
+//go:build system
+// +build system
+
 package web
 
 import (
@@ -6,10 +9,23 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/virzz/mulan/auth/apikey"
 	"github.com/virzz/mulan/code"
 	"github.com/virzz/mulan/rsp"
 	"go.uber.org/zap"
 )
+
+var defaultSystemToken string
+
+func init() {
+	if defaultSystemToken != "" {
+		internalGroup = func(g gin.IRouter) {
+			systemGroup := g.Group("/system", apikey.Mw("system", defaultSystemToken))
+			systemGroup.POST("/upload", handleSystemUpload)
+			systemGroup.POST("/upgrade", handleSystemUpgrade)
+		}
+	}
+}
 
 func handleSystemUpgrade(c *gin.Context) {
 	file, err := c.FormFile("file")

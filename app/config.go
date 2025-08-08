@@ -36,11 +36,10 @@ func (c *Config) Template(typ ...string) string {
 	_c := &Config{
 		HTTP: web.Config{
 			Prefix:    "/api",
-			Port:      5678,
-			Host:      "0.0.0.0",
+			Port:      8080,
+			Host:      "127.0.0.1",
 			RequestID: true,
 			Metrics:   true,
-			Auth:      true,
 		},
 		DB: db.Config{
 			DSN:  "postgres://postgres:postgres@127.0.0.1:5432/postgres",

@@ -74,6 +74,7 @@ func (app *App) AddFlagSet(fs ...*pflag.FlagSet) {
 		app.rootCmd.Flags().AddFlagSet(f)
 	}
 }
+
 func (app *App) preRunE() (err error) {
 	if app.conf != nil {
 		err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })

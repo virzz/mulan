@@ -33,7 +33,7 @@ func TestApp(t *testing.T) {
 
 	applyFunc := func(api *gin.RouterGroup) {
 		api.Handle("GET", "/", func(c *gin.Context) {
-			c.JSON(200, gin.H{"message": "Hello, World!"})
+			c.String(200, "Hello, World!")
 		})
 	}
 
@@ -43,13 +43,16 @@ func TestApp(t *testing.T) {
 	std.SetAction(func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
+
 		httpCfg := Conf.GetHTTP().WithRequestID(true)
 		httpSrv, err := web.New(httpCfg, applyFunc)
 		if err != nil {
 			return err
 		}
+
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+
 		go func() {
 			err := httpSrv.ListenAndServe()
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -57,6 +60,13 @@ func TestApp(t *testing.T) {
 				sig <- os.Interrupt
 			}
 		}()
+
+		// close server after 10 seconds for test
+		go func() {
+			<-time.After(10 * time.Second)
+			sig <- os.Interrupt
+		}()
+
 		switch <-sig {
 		case os.Interrupt:
 			httpSrv.Close()

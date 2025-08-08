@@ -12,7 +12,7 @@ import (
 
 func TestUnmarshalConfig(t *testing.T) {
 	type (
-		Configer interface{}
+		Configer any
 		Test     struct {
 			Name string `json:"name" yaml:"name"`
 			Age  int    `json:"age" yaml:"age"`

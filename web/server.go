@@ -13,12 +13,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/virzz/mulan/auth/apikey"
 )
 
 var (
-	engine *gin.Engine
+	engine        *gin.Engine
+	internalGroup func(gin.IRouter)
 
 	skipPaths = []string{"/health", "/version", "/metrics"}
 )
@@ -75,17 +74,17 @@ func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 		m.SetDuration([]float64{0.1, 0.3, 1.2, 5, 10})
 		m.Use(engine)
 	}
-	if conf.System != "" {
-		systemGroup := engine.Group("/system", apikey.Mw("system", conf.System))
-		systemGroup.POST("/system/upgrade", handleSystemUpgrade)
-		systemGroup.POST("/system/upload", handleSystemUpload)
-		if conf.Pprof {
-			pprof.Register(systemGroup, "/pprof")
-		}
+	if conf.Pprof {
+		pprof.Register(engine, "/pprof")
 	}
 	if conf.RequestID {
 		engine.Use(requestid.New())
 	}
+	// Register Internal Router
+	if internalGroup != nil {
+		internalGroup(engine)
+	}
+
 	// Register Router
 	api := engine.Group(conf.Prefix)
 

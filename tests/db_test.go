@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/glebarez/sqlite"
-	"github.com/virzz/mulan/db"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/virzz/mulan/db"
 )
 
 func TestNewDB_MySQL(t *testing.T) {
@@ -24,7 +25,7 @@ func TestNewDB_MySQL(t *testing.T) {
 		DefaultStringSize:      255,
 		DontSupportRenameIndex: true,
 	})
-	_, err := db.New(dialector, nil, &gorm.Config{Logger: db.NewLogger(true)})
+	_, err := db.New(dialector, nil, &gorm.Config{Logger: db.NewLogger(false)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,5 +81,4 @@ func TestNewDB_SQLiteFile(t *testing.T) {
 			}
 		})
 	}
-
 }

@@ -149,15 +149,13 @@ func (app *App) ExecuteE(ctx context.Context) error {
 		return app.preRunE()
 	}
 
+	app.injectVersionCmd()
+
 	if !disableConfigCmd {
 		app.injectConfigCmd()
 	}
 	if app.validate != nil {
 		app.injectValidateCmd()
 	}
-	if enableMaintainCmd {
-		app.injectMaintainCmd()
-	}
-
 	return app.rootCmd.ExecuteContext(ctx)
 }
