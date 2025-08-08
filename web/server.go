@@ -2,9 +2,9 @@ package web
 
 import (
 	"net/http"
+	"slices"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"
 	ginzap "github.com/gin-contrib/zap"
@@ -14,12 +14,14 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/virzz/mulan/auth"
 	"github.com/virzz/mulan/auth/apikey"
-	"github.com/virzz/mulan/rdb"
 )
 
-var engine *gin.Engine
+var (
+	engine *gin.Engine
+
+	skipPaths = []string{"/health", "/version", "/metrics"}
+)
 
 func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 	if conf.Debug {
@@ -39,9 +41,7 @@ func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 					c.Request.Response.StatusCode == 404 {
 					return true
 				}
-				return c.Request.URL.Path == "/health" ||
-					c.Request.URL.Path == "/version" ||
-					c.Request.URL.Path == "/metrics"
+				return slices.Contains(skipPaths, c.Request.URL.Path)
 			},
 			Context: func(c *gin.Context) []zap.Field {
 				ctx := c.Request.Context()
@@ -85,20 +85,6 @@ func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 	}
 	if conf.RequestID {
 		engine.Use(requestid.New())
-	}
-	// CORS
-	c := cors.DefaultConfig()
-	c.AddAllowHeaders(conf.Headers...)
-	if len(conf.Origins) > 0 {
-		c.AllowAllOrigins = false
-		c.AllowOrigins = conf.Origins
-	} else {
-		c.AllowAllOrigins = true
-	}
-	engine.Use(cors.New(c))
-	// Auth: Session
-	if conf.Auth {
-		engine.Use(auth.Init(rdb.R()))
 	}
 	// Register Router
 	api := engine.Group(conf.Prefix)
