@@ -19,7 +19,7 @@ import (
 )
 
 func TestApp(t *testing.T) {
-	Conf = &app.Config{}
+	Conf = &Config{}
 	meta := &app.Meta{
 		ID:          "com.virzz.mulan.example",
 		Name:        "example",
@@ -27,7 +27,7 @@ func TestApp(t *testing.T) {
 		Version:     Version,
 		Commit:      Commit,
 	}
-	std := app.New(meta)
+	std := app.New(meta, nil)
 
 	web.SetVersionHandler(meta.Name, meta.Version, meta.Commit)
 
@@ -44,7 +44,7 @@ func TestApp(t *testing.T) {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
 
-		httpCfg := Conf.GetHTTP().WithRequestID(true)
+		httpCfg := Conf.HTTP.WithRequestID(true)
 		httpSrv, err := web.New(httpCfg, applyFunc)
 		if err != nil {
 			return err

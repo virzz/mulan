@@ -12,20 +12,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/virzz/mulan/app"
+	"github.com/virzz/mulan/db"
+	"github.com/virzz/mulan/rdb"
 	"github.com/virzz/mulan/web"
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	//lint:ignore SA5008 Ignore JSON option "squash"
-	app.Config `json:",inline,squash" yaml:",inline"`
+	HTTP  web.Config `json:"http" yaml:"http"`
+	Token web.Token  `json:"token" yaml:"token"`
+	DB    db.Config  `json:"db" yaml:"db"`
+	RDB   rdb.Config `json:"rdb" yaml:"rdb"`
 }
 
 var (
 	Version string = "1.0.0"
 	Commit  string = "dev"
 
-	Conf app.Configer
+	Conf *Config
 )
 
 func Example() {
@@ -36,7 +40,7 @@ func Example() {
 		Version:     Version,
 		Commit:      Commit,
 	}
-	std := app.New(meta)
+	std := app.New(meta, nil)
 	std.SetPreInit(func(ctx context.Context) error {
 		return nil
 	})
@@ -54,7 +58,7 @@ func Example() {
 	std.SetAction(func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
-		httpCfg := Conf.GetHTTP().WithRequestID(true)
+		httpCfg := Conf.HTTP.WithRequestID(true)
 		httpSrv, err := web.New(httpCfg, applyFunc)
 		if err != nil {
 			return err

@@ -70,3 +70,7 @@ func (c *Config) Check() *Config {
 	}
 	return c
 }
+
+func (c *Config) GetHTTP() *Config { return c }
+
+func (c *Token) GetToken() *Token { return c }

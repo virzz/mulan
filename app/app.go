@@ -31,7 +31,7 @@ type (
 		action   ActionFunc
 		preInit  PreInitFunc
 		validate ValidateFunc
-		conf     Configer
+		conf     any
 		log      *zap.Logger
 		remote   *Remote //lint:ignore U1000 remote config
 	}
@@ -39,13 +39,13 @@ type (
 
 var (
 	std  *App
-	Conf Configer
+	Conf any
 )
 
-func New(meta *Meta) *App {
+func New(meta *Meta, cfg any) *App {
 	std = &App{
 		Meta:     meta,
-		conf:     &Config{},
+		conf:     cfg,
 		validate: nil,
 		rootCmd: &cobra.Command{
 			CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
@@ -59,15 +59,15 @@ func New(meta *Meta) *App {
 	return std
 }
 
-func (app *App) DisableConfigCmd()                           { disableConfigCmd = true }
-func (app *App) SetPreInit(f PreInitFunc)                    { app.preInit = f }
-func (app *App) SetValidate(f ValidateFunc)                  { app.validate = f }
-func (app *App) SetConfig(config Configer)                   { app.conf = config }
-func (app *App) SetLogger(log *zap.Logger)                   { app.log = log }
-func (app *App) AddCommand(cmd ...*cobra.Command)            { app.rootCmd.AddCommand(cmd...) }
-func (app *App) RootCmd() *cobra.Command                     { return app.rootCmd }
-func (app *App) Conf() Configer                              { return app.conf }
-func (app *App) Run(ctx context.Context, cfg Configer) error { return app.Execute(ctx, cfg) }
+func (app *App) DisableConfigCmd()                      { disableConfigCmd = true }
+func (app *App) SetPreInit(f PreInitFunc)               { app.preInit = f }
+func (app *App) SetValidate(f ValidateFunc)             { app.validate = f }
+func (app *App) SetConfig(config any)                   { app.conf = config }
+func (app *App) SetLogger(log *zap.Logger)              { app.log = log }
+func (app *App) AddCommand(cmd ...*cobra.Command)       { app.rootCmd.AddCommand(cmd...) }
+func (app *App) RootCmd() *cobra.Command                { return app.rootCmd }
+func (app *App) Conf() any                              { return app.conf }
+func (app *App) Run(ctx context.Context, cfg any) error { return app.Execute(ctx, cfg) }
 
 func (app *App) AddFlagSet(fs ...*pflag.FlagSet) {
 	for _, f := range fs {
@@ -97,7 +97,7 @@ func (app *App) SetAction(action ActionFunc) {
 	}
 }
 
-func (app *App) Execute(ctx context.Context, cfg Configer) (err error) {
+func (app *App) Execute(ctx context.Context, cfg any) (err error) {
 	// Config
 	app.rootCmd.PersistentFlags().CountP("verbose", "v", "verbose mode")
 	app.rootCmd.PersistentFlags().String("instance", "default", "instance name")

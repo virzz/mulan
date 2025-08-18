@@ -72,9 +72,6 @@ func (app *App) injectValidateCmd() {
 					return err
 				}
 			}
-			if err := app.conf.Validate(); err != nil {
-				return err
-			}
 			if app.validate != nil {
 				if err := app.validate(); err != nil {
 					return err

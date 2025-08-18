@@ -25,3 +25,5 @@ type Config struct {
 }
 
 func (c *Config) Addr() string { return c.Host + ":" + strconv.Itoa(c.Port) }
+
+func (c *Config) GetRDB() *Config { return c }

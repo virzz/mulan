@@ -1,51 +1,61 @@
-package app_test
+package app
 
 import (
-	"os"
-	"strings"
-	"testing"
+	"encoding/json"
 
-	"github.com/go-viper/mapstructure/v2"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
+
+	"github.com/virzz/mulan/db"
+	"github.com/virzz/mulan/rdb"
+	"github.com/virzz/mulan/web"
 )
 
-func TestUnmarshalConfig(t *testing.T) {
-	type (
-		Configer any
-		Test     struct {
-			Name string `json:"name" yaml:"name"`
-			Age  int    `json:"age" yaml:"age"`
-		}
-		Config struct {
-			Test Test `json:"test" yaml:"test"`
-		}
-		WrapConfig struct {
-			//lint:ignore SA5008 Ignore JSON option "squash"
-			Config `json:",inline,squash" yaml:",inline"`
-		}
+type (
+	Config struct {
+		HTTP  web.Config `json:"http" yaml:"http"`
+		Token web.Token  `json:"token" yaml:"token"`
+		DB    db.Config  `json:"db" yaml:"db"`
+		RDB   rdb.Config `json:"rdb" yaml:"rdb"`
+	}
+)
+
+func (c *Config) Template(typ ...string) string {
+	_c := &Config{
+		HTTP: web.Config{
+			Prefix:    "/api",
+			Port:      8080,
+			Host:      "127.0.0.1",
+			RequestID: true,
+			Metrics:   true,
+		},
+		DB: db.Config{
+			DSN:  "postgres://postgres:postgres@127.0.0.1:5432/postgres",
+			User: "postgres",
+			Pass: "postgres",
+		},
+		RDB: rdb.Config{
+			Host: "127.0.0.1",
+			Port: 6379,
+		},
+	}
+	_type := "json"
+	if len(typ) > 0 {
+		_type = typ[0]
+	}
+	var (
+		buf []byte
+		err error
 	)
-	var config Configer
-
-	os.Setenv("MULAN_TEST_NAME", "mulan")
-	os.Setenv("MULAN_TEST_AGE", "19")
-
-	fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
-	fs.String("test.name", "test", "test name")
-	fs.Int("test.age", 0, "test age")
-	viper.BindPFlags(fs)
-	viper.SetEnvPrefix("Mulan")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-	viper.AutomaticEnv()
-	config = &WrapConfig{}
-	err := viper.Unmarshal(&config, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
+	switch _type {
+	case "yaml":
+		buf, err = yaml.Marshal(&_c)
+	case "json":
+		fallthrough
+	default:
+		buf, err = json.MarshalIndent(&_c, "", "  ")
+	}
 	if err != nil {
-		t.Fatal(err)
+		return err.Error()
 	}
-	if config.(*WrapConfig).Test.Name != "mulan" {
-		t.Fatal("test name is not mulan")
-	}
-	if config.(*WrapConfig).Test.Age != 19 {
-		t.Fatal("test age is not 19")
-	}
+	return string(buf)
 }

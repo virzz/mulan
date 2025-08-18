@@ -100,3 +100,5 @@ func (c *Config) String() string {
 	}
 	return dsn
 }
+
+func (c *Config) GetDB() *Config { return c }
