@@ -8,7 +8,6 @@ import (
 
 func FlagSet(defaultPort int) *pflag.FlagSet {
 	fs := pflag.NewFlagSet("http", pflag.ContinueOnError)
-	fs.String("http.system", "", "HTTP System Token")
 	fs.String("http.prefix", "/api", "HTTP API Route Prefix")
 	fs.String("http.endpoint", "", "HTTP Domain Endpoint")
 	fs.String("http.host", "127.0.0.1", "HTTP Listen Address")
@@ -19,7 +18,6 @@ func FlagSet(defaultPort int) *pflag.FlagSet {
 	fs.Bool("http.metrics", false, "Enable Metrics")
 
 	fs.Bool("token.disable", false, "Token Disable")
-	fs.String("token.system", "", "Token System Token")
 	fs.String("token.keyname", "", "Token APIKey Name")
 	fs.String("token.apikey", "", "Token APIKey")
 	return fs
@@ -30,7 +28,6 @@ type (
 		Disable bool   `json:"disable" yaml:"disable"`
 		KeyName string `json:"keyname" yaml:"keyname"`
 		APIKey  string `json:"apikey" yaml:"apikey"`
-		System  string `json:"system" yaml:"system"`
 	}
 
 	//go:generate structx -struct Config
