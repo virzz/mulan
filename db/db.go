@@ -32,35 +32,6 @@ func New(dialector gorm.Dialector, conn *ConnConfig, opts ...gorm.Option) (*gorm
 	for _, opt := range opts {
 		opt.Apply(gormCfg)
 	}
-
-	//Dialector
-	// switch DBType(dsnURL.Scheme) {
-	// case DBMySQL:
-	// 	if strings.HasPrefix(dsnURL.Host, "/") {
-	// 		dsnURL.Host = "unix(" + dsnURL.Host + ")"
-	// 	} else {
-	// 		dsnURL.Host = "tcp(" + dsnURL.Host + ")"
-	// 	}
-	// 	dsn := dsnURL.String()
-	// 	dialector = mysql.New(mysql.Config{
-	// 		DSN:                    dsn[strings.Index(dsn, "://")+3:],
-	// 		DefaultStringSize:      255,
-	// 		DontSupportRenameIndex: true,
-	// 	})
-	// 	zap.L().Info("Connecting to DB", zap.String("dsn", dsn))
-	// case DBPgSQL:
-	// 	query := dsnURL.Query()
-	// 	if !query.Has("sslmode") {
-	// 		query.Set("sslmode", "disable")
-	// 	}
-	// 	dsnURL.RawQuery = query.Encode()
-	// 	dialector = postgres.New(postgres.Config{
-	// 		DSN:                  dsnURL.String(),
-	// 		PreferSimpleProtocol: true,
-	// 	})
-	// default:
-	// 	return nil, fmt.Errorf("unsupported db type: '%s'", dsnURL.Scheme)
-	// }
 	// Open
 	db, err := gorm.Open(dialector, gormCfg)
 	if err != nil {

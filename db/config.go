@@ -30,14 +30,13 @@ type (
 		Lifetime int `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
 	}
 	Config struct {
-		Debug              bool              `json:"debug,omitempty" yaml:"debug,omitempty"`
-		DSN                string            `json:"dsn,omitempty" yaml:"dsn,omitempty"`
-		User               string            `json:"user,omitempty" yaml:"user,omitempty"`
-		Pass               string            `json:"pass,omitempty" yaml:"pass,omitempty"`
-		Name               string            `json:"name,omitempty" yaml:"name,omitempty"`
-		Conn               *ConnConfig       `json:"conn,omitempty" yaml:"conn,omitempty"`
-		Args               map[string]string `json:"args,omitempty" yaml:"args,omitempty"`
-		DisablePrepareStmt bool              `json:"disable_prepare_stmt,omitempty" yaml:"disable_prepare_stmt,omitempty"`
+		Debug bool              `json:"debug,omitempty" yaml:"debug,omitempty"`
+		DSN   string            `json:"dsn,omitempty" yaml:"dsn,omitempty"`
+		User  string            `json:"user,omitempty" yaml:"user,omitempty"`
+		Pass  string            `json:"pass,omitempty" yaml:"pass,omitempty"`
+		Name  string            `json:"name,omitempty" yaml:"name,omitempty"`
+		Conn  *ConnConfig       `json:"conn,omitempty" yaml:"conn,omitempty"`
+		Args  map[string]string `json:"args,omitempty" yaml:"args,omitempty"`
 	}
 )
 
