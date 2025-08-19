@@ -1,6 +1,6 @@
 package rsp
 
-import "github.com/virzz/mulan/code"
+import "github.com/virzz/mulan/rsp/code"
 
 type IntX interface {
 	int | int64 | int32 | int16 | int8 | uint | uint64 | uint32 | uint16 | uint8

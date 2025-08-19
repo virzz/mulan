@@ -3,7 +3,7 @@ package rsp
 import (
 	"fmt"
 
-	c "github.com/virzz/mulan/code"
+	c "github.com/virzz/mulan/rsp/code"
 )
 
 type IDRsp struct {

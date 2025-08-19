@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/virzz/mulan/code"
 	"github.com/virzz/mulan/rsp"
+	"github.com/virzz/mulan/rsp/code"
 )
 
 func jsonString(v any) string {
