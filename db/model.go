@@ -13,7 +13,6 @@ type (
 		TableName() string
 		Defaults() []Modeler
 		GetID() uint64
-		Unique() (string, string)
 	}
 )
 
