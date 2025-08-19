@@ -6,13 +6,13 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func FlagSet() *pflag.FlagSet {
-	fs := pflag.NewFlagSet("rdb", pflag.ContinueOnError)
-	fs.Bool("rdb.debug", false, "Database Debug Mode")
-	fs.String("rdb.host", "127.0.0.1", "Database Host")
-	fs.Int("rdb.port", 6379, "Database Port")
-	fs.Int("rdb.db", 0, "Database Index")
-	fs.String("rdb.pass", "", "Database Password")
+func FlagSet(name string) *pflag.FlagSet {
+	fs := pflag.NewFlagSet(name, pflag.ContinueOnError)
+	fs.Bool(name+".debug", false, "Database Debug Mode")
+	fs.String(name+".host", "127.0.0.1", "Database Host")
+	fs.Int(name+".port", 6379, "Database Port")
+	fs.Int(name+".db", 0, "Database Index")
+	fs.String(name+".pass", "", "Database Password")
 	return fs
 }
 
@@ -24,7 +24,7 @@ type Config struct {
 	Pass  string `json:"pass" yaml:"pass"`
 }
 
-func (c *Config) FlagSet() *pflag.FlagSet { return FlagSet() }
+func (c *Config) FlagSet(name string) *pflag.FlagSet { return FlagSet(name) }
 
 func (c *Config) Addr() string { return c.Host + ":" + strconv.Itoa(c.Port) }
 

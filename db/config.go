@@ -10,16 +10,16 @@ import (
 	"go.uber.org/zap"
 )
 
-func FlagSet() *pflag.FlagSet {
-	fs := pflag.NewFlagSet("db", pflag.ContinueOnError)
-	fs.Bool("db.debug", false, "Database Debug Mode")
-	fs.String("db.dsn", "", "Database DSN")
-	fs.String("db.user", "", "Database User")
-	fs.String("db.pass", "", "Database Password")
-	fs.String("db.name", "", "Database Name")
-	fs.Int("db.conn.idle", 20, "Database MaxIdleConns")
-	fs.Int("db.conn.open", 250, "Database MaxOpenConns")
-	fs.Int("db.conn.lifetime", 3600, "Database ConnMaxLifetime")
+func FlagSet(name string) *pflag.FlagSet {
+	fs := pflag.NewFlagSet(name, pflag.ContinueOnError)
+	fs.Bool(name+".debug", false, "Database Debug Mode")
+	fs.String(name+".dsn", "", "Database DSN")
+	fs.String(name+".user", "", "Database User")
+	fs.String(name+".pass", "", "Database Password")
+	fs.String(name+".name", "", "Database Name")
+	fs.Int(name+".conn.idle", 20, "Database MaxIdleConns")
+	fs.Int(name+".conn.open", 250, "Database MaxOpenConns")
+	fs.Int(name+".conn.lifetime", 3600, "Database ConnMaxLifetime")
 	return fs
 }
 
@@ -40,7 +40,7 @@ type (
 	}
 )
 
-func (c *Config) FlagSet() *pflag.FlagSet { return FlagSet() }
+func (c *Config) FlagSet(name string) *pflag.FlagSet { return FlagSet(name) }
 
 func (c *Config) WithArgs(k, v string) *Config {
 	if c.Args == nil {
