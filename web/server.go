@@ -10,7 +10,6 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/penglongli/gin-metrics/ginmetrics"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -43,17 +42,11 @@ func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
 				return slices.Contains(skipPaths, c.Request.URL.Path)
 			},
 			Context: func(c *gin.Context) []zap.Field {
-				ctx := c.Request.Context()
 				fields := []zapcore.Field{
 					zap.String("referer", c.Request.Referer()),
 				}
 				if requestid := requestid.Get(c); requestid != "" {
 					fields = append(fields, zap.String("requestid", requestid))
-				}
-				// log trace and span ID
-				if span := trace.SpanFromContext(ctx).SpanContext(); span.IsValid() {
-					fields = append(fields, zap.String("trace_id", span.TraceID().String()))
-					fields = append(fields, zap.String("span_id", span.SpanID().String()))
 				}
 				return fields
 			},
