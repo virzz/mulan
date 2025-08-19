@@ -43,6 +43,8 @@ type (
 	}
 )
 
+func (c *Config) FlagSet(defaultPort int) *pflag.FlagSet { return FlagSet(defaultPort) }
+
 func (c *Config) Addr() string { return c.Host + ":" + strconv.Itoa(c.Port) }
 
 func (c *Config) GetEndpoint() string {

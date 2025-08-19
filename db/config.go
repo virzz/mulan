@@ -40,6 +40,8 @@ type (
 	}
 )
 
+func (c *Config) FlagSet() *pflag.FlagSet { return FlagSet() }
+
 func (c *Config) WithArgs(k, v string) *Config {
 	if c.Args == nil {
 		c.Args = make(map[string]string)

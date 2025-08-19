@@ -24,6 +24,8 @@ type Config struct {
 	Pass  string `json:"pass" yaml:"pass"`
 }
 
+func (c *Config) FlagSet() *pflag.FlagSet { return FlagSet() }
+
 func (c *Config) Addr() string { return c.Host + ":" + strconv.Itoa(c.Port) }
 
 func (c *Config) GetRDB() *Config { return c }
