@@ -4,9 +4,8 @@ import (
 	"crypto/rand"
 	"encoding"
 	"encoding/hex"
+	"encoding/json"
 	"io"
-
-	"github.com/go-json-experiment/json"
 )
 
 type (
