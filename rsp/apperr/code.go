@@ -1,4 +1,4 @@
-package code
+package apperr
 
 type (
 	SystemCode int
@@ -12,16 +12,17 @@ const (
 	Internal            // 内部错误
 	Remote              // 远程错误
 	// 业务代码
-	_biz_code BizCode = iota + 1000
-	Auth              // Auth
-	Captcha           // Captcha
-	Database          // Database
-	File              // File
+	_biz_code    BizCode = iota + 1000
+	Auth                 // Auth
+	Captcha              // Captcha
+	Database             // Database
+	File                 // File
+	RemoteConfig         // RemoteConfig
 )
 
 var (
 	Success       = New(OK, 0, 0, "成功")
-	UnknownErr    = New(Internal, 0, 0, "系统错误")
+	UnknownErr    = New(Internal, 0, 0, "未知错误")
 	UnImplemented = New(Internal, 0, 1, "未实现")
 	NotFound      = New(Internal, 0, 2, "资源未找到")
 	// Request

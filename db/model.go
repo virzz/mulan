@@ -17,22 +17,21 @@ type (
 )
 
 type Model struct {
-	ID        uint64 `gorm:"primaryKey;autoIncrement;column:id" json:"-"`
-	CreatedAt int64  `gorm:"autoCreateTime;column:created_at" json:"created_at"`
-	UpdatedAt int64  `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+	ID        uint64    `gorm:"primaryKey;autoIncrement;column:id"`
+	UUID      uuid.UUID `gorm:"type:uuid;unique;column:uuid;default:gen_random_uuid()"`
+	CreatedAt int64     `gorm:"autoCreateTime;column:created_at"`
+	UpdatedAt int64     `gorm:"autoUpdateTime;column:updated_at"`
 }
 
 func (m *Model) Defaults() []Modeler { return []Modeler{} }
 func (m *Model) GetID() uint64       { return m.ID }
 
-type ModelUUID struct {
-	Model
-	UUID uuid.UUID `gorm:"type:uuid;unique;column:uuid;default:gen_random_uuid()" json:"uuid"`
-}
-
-func (m *ModelUUID) BeforeCreate(tx *gorm.DB) (err error) {
+func (m *Model) BeforeCreate(tx *gorm.DB) (err error) {
 	if m.UUID == uuid.Nil {
-		m.UUID = uuid.New()
+		m.UUID, err = uuid.NewV7()
+		if err != nil {
+			m.UUID = uuid.New()
+		}
 	}
 	return
 }

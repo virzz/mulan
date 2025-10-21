@@ -1,32 +1,28 @@
 package rsp
 
-import "github.com/virzz/mulan/rsp/code"
+import "github.com/virzz/mulan/rsp/apperr"
 
-type IntX interface {
+type Number interface {
 	int | int64 | int32 | int16 | int8 | uint | uint64 | uint32 | uint16 | uint8
 }
 
+type ItemRsp = Rsp[*Items]
+
 type Items struct {
 	Items any   `json:"items"`
-	Total int64 `json:"total"`
 	Ext   any   `json:"ext,omitempty"`
+	Total int64 `json:"total"`
 }
 
-func Item[T IntX](total T, items any) Rsp {
-	return Rsp{APICode: code.Success, Data: &Items{Items: items, Total: int64(total)}}
+func Item[T Number](total T, items any) ItemRsp {
+	return ItemRsp{AppError: apperr.Success, Data: &Items{Items: items, Total: int64(total)}}
 }
-func ItemExt[T IntX](total T, items any, ext any) Rsp {
-	return Rsp{APICode: code.Success, Data: &Items{Items: items, Total: int64(total), Ext: ext}}
+func ItemExt[T Number](total T, items any, ext any) ItemRsp {
+	return ItemRsp{AppError: apperr.Success, Data: &Items{Items: items, Total: int64(total), Ext: ext}}
 }
-func ItemCode(c code.APICode) Rsp {
-	return Rsp{APICode: c, Data: &Items{Items: []struct{}{}, Total: 0}}
+
+func ItemCode(err *apperr.AppError) ItemRsp {
+	return ItemRsp{AppError: err, Data: &Items{Items: []struct{}{}, Total: 0}}
 }
-func ItemNone() Rsp { return ItemCode(code.NotFound) }
-func MItem[T IntX](total T, items any, msg string, ext ...any) Rsp {
-	r := Rsp{APICode: code.Success, Data: &Items{Items: items, Total: int64(total)}}
-	r.WithMsg(msg)
-	if len(ext) > 0 {
-		r.Data.(*Items).Ext = ext[0]
-	}
-	return r
-}
+
+func ItemNone() ItemRsp { return ItemCode(apperr.NotFound) }

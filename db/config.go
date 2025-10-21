@@ -20,23 +20,25 @@ func FlagSet(name string) *pflag.FlagSet {
 	fs.Int(name+".conn.idle", 20, "Database MaxIdleConns")
 	fs.Int(name+".conn.open", 250, "Database MaxOpenConns")
 	fs.Int(name+".conn.lifetime", 3600, "Database ConnMaxLifetime")
+	fs.Bool(name+".migrate", false, "Database Auto Migrate")
 	return fs
 }
 
 type (
 	ConnConfig struct {
-		Idle     int `json:"idle,omitempty" yaml:"idle,omitempty"`
-		Open     int `json:"open,omitempty" yaml:"open,omitempty"`
-		Lifetime int `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
+		Idle     int `json:"idle" yaml:"idle"`
+		Open     int `json:"open" yaml:"open"`
+		Lifetime int `json:"lifetime" yaml:"lifetime"`
 	}
 	Config struct {
-		Debug bool              `json:"debug,omitempty" yaml:"debug,omitempty"`
-		DSN   string            `json:"dsn,omitempty" yaml:"dsn,omitempty"`
-		User  string            `json:"user,omitempty" yaml:"user,omitempty"`
-		Pass  string            `json:"pass,omitempty" yaml:"pass,omitempty"`
-		Name  string            `json:"name,omitempty" yaml:"name,omitempty"`
-		Conn  *ConnConfig       `json:"conn,omitempty" yaml:"conn,omitempty"`
-		Args  map[string]string `json:"args,omitempty" yaml:"args,omitempty"`
+		Conn    *ConnConfig       `json:"conn" yaml:"conn"`
+		Args    map[string]string `json:"args" yaml:"args"`
+		DSN     string            `json:"dsn" yaml:"dsn"`
+		User    string            `json:"user" yaml:"user"`
+		Pass    string            `json:"pass" yaml:"pass"`
+		Name    string            `json:"name" yaml:"name"`
+		Debug   bool              `json:"debug" yaml:"debug"`
+		Migrate bool              `json:"migrate" yaml:"migrate"`
 	}
 )
 

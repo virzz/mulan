@@ -4,13 +4,17 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/virzz/mulan/rsp"
-	"github.com/virzz/mulan/rsp/code"
+	"github.com/virzz/mulan/rsp/apperr"
 )
 
-var versionHandler gin.HandlerFunc = func(c *gin.Context) { c.Status(200) }
-
-func SetVersionHandler(name, version, commit string) {
-	versionHandler = func(c *gin.Context) { c.String(200, name+" "+version+" "+commit) }
+type Handler interface {
+	Register(gin.IRouter)
 }
 
-func ErrCodeHandler(c *gin.Context) { c.JSON(200, rsp.S(code.Codes)) }
+func VersionHandler(info *Info) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(200, info.Name+" "+info.Version+" "+info.Commit)
+	}
+}
+
+func ErrCodeHandler(c *gin.Context) { c.JSON(200, rsp.S(apperr.Errors)) }

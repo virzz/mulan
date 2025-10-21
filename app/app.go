@@ -2,19 +2,24 @@ package app
 
 import (
 	"context"
+	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/joho/godotenv"
+	slogzap "github.com/samber/slog-zap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+
+	"github.com/virzz/mulan/service"
 )
 
 type (
-	ActionFunc   func(cmd *cobra.Command, args []string) error
-	PreInitFunc  func(context.Context) error
-	ValidateFunc func() error
+	ActionFunc  func(cmd *cobra.Command, args []string) error
+	PreInitFunc func(context.Context) error
 
 	Meta struct {
 		ID          string
@@ -25,92 +30,124 @@ type (
 		Commit      string
 		BuildAt     string
 	}
-	App struct {
+	App[T any] struct {
 		*Meta
-		rootCmd  *cobra.Command
-		action   ActionFunc
-		preInit  PreInitFunc
-		validate ValidateFunc
-		conf     any
-		log      *zap.Logger
-		remote   *Remote //lint:ignore U1000 remote config
+		rootCmd *cobra.Command
+		preInit PreInitFunc
+		log     *zap.Logger
+		remote  *Remote
+		conf    *T
+		srvs    []service.Servicer
 	}
 )
 
-var (
-	std  *App
-	Conf any
-)
+var replacer = strings.NewReplacer(".", "__", "-", "__")
 
-func New(meta *Meta, cfg any) *App {
-	std = &App{
-		Meta:     meta,
-		conf:     cfg,
-		validate: nil,
+func New[T any](meta *Meta, cfg *T) *App[T] {
+	_ = godotenv.Load()
+	zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
+
+	std := &App[T]{
+		Meta: meta,
+		conf: cfg,
+		log:  zap.L(),
+		srvs: make([]service.Servicer, 0),
 		rootCmd: &cobra.Command{
-			CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
-			SilenceErrors:     true,
-			SilenceUsage:      true,
+			CompletionOptions: cobra.CompletionOptions{
+				HiddenDefaultCmd: true,
+			},
+			SilenceErrors: true,
+			SilenceUsage:  true,
 			RunE: func(_ *cobra.Command, _ []string) error {
 				panic("execute action not implemented")
 			},
 		},
 	}
+	std.internalCmd()
 	return std
 }
 
-func (app *App) DisableConfigCmd()                      { disableConfigCmd = true }
-func (app *App) SetPreInit(f PreInitFunc)               { app.preInit = f }
-func (app *App) SetValidate(f ValidateFunc)             { app.validate = f }
-func (app *App) SetConfig(config any)                   { app.conf = config }
-func (app *App) SetLogger(log *zap.Logger)              { app.log = log }
-func (app *App) AddCommand(cmd ...*cobra.Command)       { app.rootCmd.AddCommand(cmd...) }
-func (app *App) RootCmd() *cobra.Command                { return app.rootCmd }
-func (app *App) Conf() any                              { return app.conf }
-func (app *App) Run(ctx context.Context, cfg any) error { return app.Execute(ctx, cfg) }
+func (app *App[T]) SetPreInit(f PreInitFunc) *App[T]  { app.preInit = f; return app }
+func (app *App[T]) SetLogger(log *zap.Logger) *App[T] { app.log = log; return app }
+func (app *App[T]) RootCmd() *cobra.Command           { return app.rootCmd }
+func (app *App[T]) Conf() *T                          { return app.conf }
 
-func (app *App) AddFlagSet(fs ...*pflag.FlagSet) {
+func (app *App[T]) AddFlagSet(fs ...*pflag.FlagSet) *App[T] {
+	flags := app.rootCmd.Flags()
 	for _, f := range fs {
-		app.rootCmd.Flags().AddFlagSet(f)
+		flags.AddFlagSet(f)
 	}
+	return app
 }
 
-func (app *App) preRunE() (err error) {
-	if app.conf != nil {
-		err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
-		if err != nil {
-			return err
+func (app *App[T]) AddService(srvs ...service.Servicer) *App[T] {
+	app.srvs = append(app.srvs, srvs...)
+	return app
+}
+
+func (app *App[T]) AddCommand(cmd ...*cobra.Command) *App[T] {
+	internalCmds := []string{"config", "version"}
+	for _, c := range cmd {
+		if slices.Contains(internalCmds, c.Use) {
+			app.log.Warn("internal command cannot be added", zap.String("command", c.Use))
+			continue
 		}
+		app.rootCmd.AddCommand(c)
 	}
-	return nil
+	return app
 }
 
-func (app *App) SetAction(action ActionFunc) {
-	app.action = func(cmd *cobra.Command, args []string) error {
-		if app.preInit != nil {
-			err := app.preInit(cmd.Context())
-			if err != nil {
-				return err
+func loadConfig[T any](app *App[T]) func(cmd *cobra.Command, args []string) (err error) {
+	logger := app.log.Named("viper")
+	return func(cmd *cobra.Command, args []string) (err error) {
+		fs := cmd.Flags()
+		instance, _ := fs.GetString("instance")
+		configPath, _ := fs.GetString("config")
+		viper.SetOptions(
+			viper.WithLogger(
+				slog.New(
+					slogzap.Option{
+						Level:  slog.LevelWarn,
+						Logger: logger,
+					}.NewZapHandler(),
+				),
+			),
+		)
+		configLoaded := false
+		configSource := "env"
+		if configPath != "" {
+			configSource = "args"
+			viper.SetConfigFile(configPath)
+		} else if app.remote != nil {
+			app.remote.instance = instance
+			if err = viper.ReadRemoteConfig(); err == nil {
+				configSource = "remote"
+				configLoaded = true
 			}
 		}
-		return action(cmd, args)
+		if !configLoaded {
+			viper.AddConfigPath(".")
+			viper.SetConfigName("config_" + instance)
+			viper.SetConfigType("")
+			if viper.ReadInConfig() == nil {
+				configSource = viper.ConfigFileUsed()
+			}
+		}
+		// Viper config unmarshal to app.conf
+		err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
+		if err != nil {
+			logger.Error("Failed to unmarshal config", zap.Error(err))
+			return err
+		}
+		logger.Info("Config loaded from", zap.String("source", configSource))
+		return nil
 	}
 }
 
-func (app *App) Execute(ctx context.Context, cfg any) (err error) {
+func (app *App[T]) Execute(ctx context.Context, action ...ActionFunc) (err error) {
 	// Config
-	app.rootCmd.PersistentFlags().CountP("verbose", "v", "verbose mode")
-	app.rootCmd.PersistentFlags().String("instance", "default", "instance name")
-	app.rootCmd.PersistentFlags().String("config", "", "config file")
-
-	app.log, err = zap.NewProduction()
-	if err != nil {
-		return err
-	}
-	// Action
-	if app.action != nil {
-		app.rootCmd.RunE = app.action
-	}
+	app.rootCmd.PersistentFlags().StringP("instance", "i", "default", "instance name")
+	app.rootCmd.PersistentFlags().StringP("config", "c", "", "config file")
 	err = viper.BindPFlags(app.rootCmd.PersistentFlags())
 	if err != nil {
 		return err
@@ -119,11 +156,27 @@ func (app *App) Execute(ctx context.Context, cfg any) (err error) {
 	if err != nil {
 		return err
 	}
-
 	viper.SetEnvPrefix(app.Name)
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
-	app.conf = cfg
-	return app.ExecuteE(ctx)
+	app.rootCmd.PreRunE = loadConfig(app)
+
+	// Action
+	var currentAction ActionFunc
+	if len(action) > 0 && action[0] != nil {
+		currentAction = action[0]
+	} else {
+		currentAction = defaultAction(app)
+	}
+	app.rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if app.preInit != nil {
+			err := app.preInit(cmd.Context())
+			if err != nil {
+				return err
+			}
+		}
+		return currentAction(cmd, args)
+	}
+	return app.rootCmd.ExecuteContext(ctx)
 }

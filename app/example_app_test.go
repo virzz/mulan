@@ -2,34 +2,27 @@ package app_test
 
 import (
 	"context"
-	"errors"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/cobra"
 	"github.com/virzz/mulan/app"
 	"github.com/virzz/mulan/db"
 	"github.com/virzz/mulan/rdb"
 	"github.com/virzz/mulan/web"
-	"go.uber.org/zap"
 )
 
 type Config struct {
-	HTTP  web.Config `json:"http" yaml:"http"`
-	Token web.Token  `json:"token" yaml:"token"`
-	DB    db.Config  `json:"db" yaml:"db"`
-	RDB   rdb.Config `json:"rdb" yaml:"rdb"`
+	DB   db.Config  `json:"db" yaml:"db"`
+	HTTP web.Config `json:"http" yaml:"http"`
+	RDB  rdb.Config `json:"rdb" yaml:"rdb"`
 }
 
 var (
 	Version string = "1.0.0"
 	Commit  string = "dev"
+	BuildAt string = time.Now().Format(time.RFC3339)
 
-	Conf *Config
+	Conf = &Config{}
 )
 
 func Example() {
@@ -39,50 +32,21 @@ func Example() {
 		Description: "ExampleService",
 		Version:     Version,
 		Commit:      Commit,
+		BuildAt:     BuildAt,
 	}
-	std := app.New(meta, nil)
-	std.SetPreInit(func(ctx context.Context) error {
-		return nil
-	})
-	std.SetValidate(func() error {
-		return nil
-	})
-	web.SetVersionHandler(meta.Name, meta.Version, meta.Commit)
+	std := app.New(meta, Conf)
 
-	applyFunc := func(api *gin.RouterGroup) {
+	routerFunc := func(api gin.IRouter) {
 		api.Handle("GET", "/", func(c *gin.Context) {
-			c.JSON(200, gin.H{"message": "Hello, World!"})
+			c.String(200, "Hello, World!")
 		})
 	}
+	webInfo := &web.Info{Name: meta.Name, Version: meta.Version, Commit: meta.Commit}
+	webSrv := web.New(&Conf.HTTP, webInfo, routerFunc)
 
-	std.SetAction(func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithCancel(cmd.Context())
-		defer cancel()
-		httpCfg := Conf.HTTP.WithRequestID(true)
-		httpSrv, err := web.New(httpCfg, applyFunc)
-		if err != nil {
-			return err
-		}
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			err := httpSrv.ListenAndServe()
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				zap.L().Error("Failed to run http server", zap.Error(err))
-				sig <- os.Interrupt
-			}
-		}()
-		switch <-sig {
-		case os.Interrupt:
-			httpSrv.Close()
-		case syscall.SIGTERM:
-			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-			defer cancel()
-			httpSrv.Shutdown(ctx)
-		}
-		return nil
-	})
-	if err := std.Execute(context.Background(), Conf); err != nil {
+	std.AddService(webSrv)
+
+	if err := std.Execute(context.Background()); err != nil {
 		panic(err)
 	}
 }

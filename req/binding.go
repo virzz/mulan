@@ -2,39 +2,33 @@ package req
 
 import (
 	"reflect"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
+	v "github.com/go-playground/validator/v10"
 )
 
+type defaultValidator struct{ validate *v.Validate }
+
 func init() {
-	binding.Validator = nil
+	validate := v.New()
+	validate.SetTagName("binding")
+	binding.Validator = &defaultValidator{validate: validate}
 }
 
-var Validator binding.StructValidator = &defaultValidator{}
+func (v *defaultValidator) Engine() any { return v.validate }
 
-type defaultValidator struct {
-	once     sync.Once
-	validate *validator.Validate
-}
-
-// ValidateStruct receives any kind of type, but only performed struct or pointer to struct type.
 func (v *defaultValidator) ValidateStruct(obj any) error {
 	if obj == nil {
 		return nil
 	}
 	value := reflect.ValueOf(obj)
 	switch value.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return v.ValidateStruct(value.Elem().Interface())
-	case reflect.Struct:
-		return v.validateStruct(obj)
 	case reflect.Slice, reflect.Array:
-		count := value.Len()
 		validateRet := make(binding.SliceValidationError, 0)
-		for i := range count {
+		for i := range value.Len() {
 			if err := v.ValidateStruct(value.Index(i).Interface()); err != nil {
 				validateRet = append(validateRet, err)
 			}
@@ -43,47 +37,49 @@ func (v *defaultValidator) ValidateStruct(obj any) error {
 			return nil
 		}
 		return validateRet
+	case reflect.Struct:
+		return v.validate.Struct(obj)
 	default:
 		return nil
 	}
 }
 
-// validateStruct receives struct type
-func (v *defaultValidator) validateStruct(obj any) error {
-	v.lazyinit()
-	return v.validate.Struct(obj)
-}
-
-func (v *defaultValidator) Engine() any {
-	v.lazyinit()
-	return v.validate
-}
-
-func (v *defaultValidator) lazyinit() {
-	v.once.Do(func() {
-		v.validate = validator.New()
-		v.validate.SetTagName("binding")
-	})
-}
-
-func Bind(c *gin.Context, obj any) error {
-	err := binding.Default(c.Request.Method, c.ContentType()).
-		Bind(c.Request, obj)
-	if err != nil {
-		return c.Error(err)
-	}
+func Bind(c *gin.Context, obj any) (err error) {
+	// Bind Path Params
 	if len(c.Params) > 0 {
-		if err := c.ShouldBindUri(obj); err != nil {
+		m := make(map[string][]string, len(c.Params))
+		for _, v := range c.Params {
+			m[v.Key] = []string{v.Value}
+		}
+		if err := binding.Uri.BindUri(m, obj); err != nil {
 			return c.Error(err)
 		}
 	}
-	return Validator.ValidateStruct(obj)
+	// Bind Body
+	err = binding.Default(c.Request.Method, c.ContentType()).Bind(c.Request, obj)
+	if err != nil {
+		return c.Error(err)
+	}
+	// Bind Query
+	err = binding.Query.Bind(c.Request, obj)
+	if err != nil {
+		return c.Error(err)
+	}
+	return binding.Validator.ValidateStruct(obj)
 }
 
-func ShouldBind(c *gin.Context, obj any) error {
-	binding.Default(c.Request.Method, c.ContentType()).Bind(c.Request, obj)
+func ShouldBind(c *gin.Context, obj any) (err error) {
+	// Bind Path Params
 	if len(c.Params) > 0 {
-		c.ShouldBindUri(obj)
+		m := make(map[string][]string, len(c.Params))
+		for _, v := range c.Params {
+			m[v.Key] = []string{v.Value}
+		}
+		binding.Uri.BindUri(m, obj)
 	}
-	return Validator.ValidateStruct(obj)
+	// Bind Body
+	binding.Default(c.Request.Method, c.ContentType()).Bind(c.Request, obj)
+	// Bind Query
+	binding.Query.Bind(c.Request, obj)
+	return binding.Validator.ValidateStruct(obj)
 }

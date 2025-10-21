@@ -1,4 +1,4 @@
-package tests
+package db_test
 
 import (
 	"os"
@@ -25,7 +25,13 @@ func TestNewDB_MySQL(t *testing.T) {
 		DefaultStringSize:      255,
 		DontSupportRenameIndex: true,
 	})
-	_, err := db.New(dialector, nil, &gorm.Config{Logger: db.NewLogger(false)})
+	_, err := db.New(
+		dialector,
+		cfg.Conn,
+		&gorm.Config{
+			Logger: db.NewLogger(cfg.Debug),
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +48,13 @@ func TestNewDB_PgSQL(t *testing.T) {
 		DSN:                  cfg.String(),
 		PreferSimpleProtocol: true,
 	})
-	_, err := db.New(dialector, nil, &gorm.Config{Logger: db.NewLogger(true)})
+	_, err := db.New(
+		dialector,
+		cfg.Conn,
+		&gorm.Config{
+			Logger: db.NewLogger(cfg.Debug),
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +70,13 @@ func TestNewDB_SQLiteMemory(t *testing.T) {
 	dsn := cfg.String()
 	t.Log(dsn)
 	dialector := sqlite.Open(dsn)
-	_, err := db.New(dialector, nil, &gorm.Config{Logger: db.NewLogger(true)})
+	_, err := db.New(
+		dialector,
+		cfg.Conn,
+		&gorm.Config{
+			Logger: db.NewLogger(cfg.Debug),
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +93,13 @@ func TestNewDB_SQLiteFile(t *testing.T) {
 	for _, dsn := range dsns {
 		t.Run(dsn, func(t *testing.T) {
 			cfg := db.Config{DSN: dsn}
-			_, err := db.New(sqlite.Open(cfg.String()), nil)
+			_, err := db.New(
+				sqlite.Open(cfg.String()),
+				cfg.Conn,
+				&gorm.Config{
+					Logger: db.NewLogger(cfg.Debug),
+				},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}

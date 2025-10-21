@@ -2,9 +2,7 @@ package app_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,45 +16,18 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestApp(t *testing.T) {
-	Conf = &Config{}
-	meta := &app.Meta{
-		ID:          "com.virzz.mulan.example",
-		Name:        "example",
-		Description: "ExampleService",
-		Version:     Version,
-		Commit:      Commit,
-	}
-	std := app.New(meta, nil)
-
-	web.SetVersionHandler(meta.Name, meta.Version, meta.Commit)
-
-	applyFunc := func(api *gin.RouterGroup) {
-		api.Handle("GET", "/", func(c *gin.Context) {
-			c.String(200, "Hello, World!")
-		})
-	}
-
-	std.SetPreInit(func(ctx context.Context) error { return nil })
-	std.SetValidate(func() error { return nil })
-
-	std.SetAction(func(cmd *cobra.Command, args []string) error {
+func testAction[T any](app *app.App[T]) func(cmd *cobra.Command, _ []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
-
-		httpCfg := Conf.HTTP.WithRequestID(true)
-		httpSrv, err := web.New(httpCfg, applyFunc)
-		if err != nil {
-			return err
-		}
 
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
 		go func() {
-			err := httpSrv.ListenAndServe()
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				zap.L().Error("Failed to run http server", zap.Error(err))
+			err := app.Serve()
+			if err != nil {
+				zap.L().Error("Failed to run server", zap.Error(err))
 				sig <- os.Interrupt
 			}
 		}()
@@ -69,15 +40,41 @@ func TestApp(t *testing.T) {
 
 		switch <-sig {
 		case os.Interrupt:
-			httpSrv.Close()
+			app.Close()
 		case syscall.SIGTERM:
 			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
-			httpSrv.Shutdown(ctx)
+			app.Shutdown(ctx)
 		}
 		return nil
-	})
-	if err := std.Execute(context.Background(), Conf); err != nil {
+	}
+}
+
+func TestApp(t *testing.T) {
+	Conf = &Config{}
+	meta := &app.Meta{
+		ID:          "com.virzz.mulan.example",
+		Name:        "example",
+		Description: "ExampleService",
+		Version:     Version,
+		Commit:      Commit,
+		BuildAt:     BuildAt,
+	}
+	std := app.New(meta, Conf)
+
+	webSrv := web.New(
+		&Conf.HTTP,
+		&web.Info{Name: meta.Name, Version: meta.Version, Commit: meta.Commit},
+		func(api gin.IRouter) {
+			api.Handle("GET", "/", func(c *gin.Context) {
+				c.String(200, "Hello, World!")
+			})
+		},
+	)
+
+	std.AddService(webSrv)
+
+	if err := std.Execute(context.Background(), testAction(std)); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

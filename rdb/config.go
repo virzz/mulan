@@ -17,11 +17,11 @@ func FlagSet(name string) *pflag.FlagSet {
 }
 
 type Config struct {
-	Debug bool   `json:"debug" yaml:"debug"`
 	Host  string `json:"host" yaml:"host"`
+	Pass  string `json:"pass" yaml:"pass"`
 	Port  int    `json:"port" yaml:"port"`
 	DB    int    `json:"db" yaml:"db"`
-	Pass  string `json:"pass" yaml:"pass"`
+	Debug bool   `json:"debug" yaml:"debug"`
 }
 
 func (c *Config) FlagSet(name string) *pflag.FlagSet { return FlagSet(name) }

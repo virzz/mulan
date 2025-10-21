@@ -1,8 +1,10 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/pprof"
@@ -10,87 +12,120 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/penglongli/gin-metrics/ginmetrics"
+	"github.com/virzz/mulan/service"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var (
-	engine        *gin.Engine
-	internalGroup func(gin.IRouter)
+var _ service.Servicer = (*Service)(nil)
 
-	skipPaths = []string{"/health", "/version", "/metrics"}
+type Info struct {
+	Name    string
+	Version string
+	Commit  string
+	BuildAt string
+}
+
+type Service struct {
+	conf     *Config
+	info     *Info
+	routerFn func(gin.IRouter)
+	engine   *gin.Engine
+	server   *http.Server
+	isBuild  bool
+}
+
+func (s *Service) Shutdown(ctx context.Context) error { return s.server.Shutdown(ctx) }
+func (s *Service) Close() error                       { return s.server.Close() }
+
+func (s *Service) Server() *http.Server    { return s.server }
+func (s *Service) Routes() []gin.RouteInfo { return s.engine.Routes() }
+func (s *Service) Engine() *gin.Engine     { return s.engine }
+
+func (s *Service) Serve() error {
+	if !s.isBuild {
+		s.Build()
+	}
+	zap.L().Info("HTTP Server Listening on",
+		zap.String("endpoint", s.conf.GetEndpoint()),
+		zap.String("host", s.conf.Host),
+		zap.Int("port", s.conf.Port),
+	)
+	return s.server.ListenAndServe()
+}
+
+var (
+	loggerSkipPaths   = []string{"/health", "/version", "/metrics", "/pprof"}
+	loggerSkipMethods = []string{http.MethodOptions, http.MethodHead, http.MethodTrace}
 )
 
-func New(conf *Config, applyFunc func(*gin.RouterGroup)) (*http.Server, error) {
-	if conf.Debug {
+func New(conf *Config, info *Info, fn func(gin.IRouter)) *Service {
+	return &Service{conf: conf, info: info, routerFn: fn}
+}
+
+func (s *Service) Build() *Service {
+	if s.conf.Debug {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	ginLog := zap.L().Named("gin")
-	engine = gin.New()
-	engine.Use(
+
+	s.engine = gin.New()
+
+	s.engine.Use(
+		// Recovery
 		ginzap.RecoveryWithZap(ginLog, true),
+		// RequestID
+		requestid.New(),
+		// Logger
 		ginzap.GinzapWithConfig(ginLog, &ginzap.Config{
 			TimeFormat: time.RFC3339,
-			UTC:        true,
 			Skipper: func(c *gin.Context) bool {
+				if slices.Contains(loggerSkipMethods, c.Request.Method) {
+					return true
+				}
 				if c.Request.Response != nil &&
 					c.Request.Response.StatusCode == 404 {
 					return true
 				}
-				return slices.Contains(skipPaths, c.Request.URL.Path)
+				for _, path := range loggerSkipPaths {
+					if strings.HasSuffix(c.Request.URL.Path, path) {
+						return true
+					}
+				}
+				return false
 			},
 			Context: func(c *gin.Context) []zap.Field {
 				fields := []zapcore.Field{
 					zap.String("referer", c.Request.Referer()),
-				}
-				if requestid := requestid.Get(c); requestid != "" {
-					fields = append(fields, zap.String("requestid", requestid))
+					zap.String("requestid", requestid.Get(c)),
 				}
 				return fields
 			},
 		}),
 	)
 
-	engine.GET("/version", versionHandler)
-	engine.GET("/health", versionHandler)
-	if conf.Prefix != "" && conf.Prefix != "/" {
-		engine.GET(conf.Prefix+"/version", versionHandler)
-		engine.GET(conf.Prefix+"/health", versionHandler)
+	versionHandler := VersionHandler(s.info)
+	s.engine.GET("/version", versionHandler)
+	s.engine.GET("/health", versionHandler)
+
+	if s.conf.Pprof {
+		pprof.RouteRegister(s.engine, "/pprof")
 	}
 
-	if conf.Metrics {
-		m := ginmetrics.GetMonitor()
-		m.SetMetricPath("/metrics")
-		m.SetSlowTime(10)
-		m.SetDuration([]float64{0.1, 0.3, 1.2, 5, 10})
-		m.Use(engine)
-	}
-	if conf.Pprof {
-		pprof.Register(engine, "/pprof")
-	}
-	if conf.RequestID {
-		engine.Use(requestid.New())
-	}
-	// Register Internal Router
-	if internalGroup != nil {
-		internalGroup(engine)
-	}
+	m := ginmetrics.GetMonitor()
+	m.SetMetricPath("/metrics")
+	m.SetExcludePaths(loggerSkipPaths)
+	m.SetSlowTime(10)
+	m.Use(s.engine)
 
 	// Register Router
-	api := engine.Group(conf.Prefix)
-
-	if applyFunc != nil {
-		applyFunc(api)
+	if s.routerFn != nil {
+		api := s.engine.Group(s.conf.Prefix)
+		s.routerFn(api)
 	}
-
-	zap.L().Info("HTTP Server Listening on",
-		zap.String("endpoint", conf.GetEndpoint()),
-		zap.String("host", conf.Host),
-		zap.Int("port", conf.Port),
-	)
-	return &http.Server{Addr: conf.Addr(), Handler: engine}, nil
+	s.server = &http.Server{Addr: s.conf.Addr(), Handler: s.engine}
+	s.isBuild = true
+	return s
 }
-
-func Routes() []gin.RouteInfo { return engine.Routes() }

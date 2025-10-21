@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/virzz/mulan/rsp"
-	"github.com/virzz/mulan/rsp/code"
+	"github.com/virzz/mulan/rsp/apperr"
 )
 
 func jsonString(v any) string {
@@ -17,6 +17,6 @@ func TestMsg(t *testing.T) {
 	t.Log(jsonString(rsp.OK()))
 	t.Log(jsonString(rsp.M("aaaaaaaaaaaaaaaa")))
 	t.Log(jsonString(rsp.OK()))
-	t.Log(jsonString(rsp.E(code.DatabaseUnknown, "DatabaseUnknown")))
+	t.Log(jsonString(rsp.E(apperr.DatabaseUnknown)))
 	t.Log(jsonString(rsp.OK()))
 }
