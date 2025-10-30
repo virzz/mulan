@@ -35,8 +35,21 @@ type Service struct {
 	isBuild  bool
 }
 
-func (s *Service) Shutdown(ctx context.Context) error { return s.server.Shutdown(ctx) }
-func (s *Service) Close() error                       { return s.server.Close() }
+func (s *Service) Shutdown(ctx context.Context) error {
+	err := s.server.Shutdown(ctx)
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) Close() error {
+	err := s.server.Close()
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
 
 func (s *Service) Server() *http.Server    { return s.server }
 func (s *Service) Routes() []gin.RouteInfo { return s.engine.Routes() }
