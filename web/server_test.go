@@ -8,13 +8,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mulan-ext/log"
 	"github.com/virzz/mulan/web"
 	"go.uber.org/zap"
 )
 
 func TestNew(t *testing.T) {
-	log.New(true, "test")
+	logger, err := zap.NewDevelopment(zap.AddCaller())
+	if err != nil {
+		t.Fatal(err)
+	}
+	zap.ReplaceGlobals(logger)
 
 	cfg := &web.Config{
 		Host:  "127.0.0.1",
