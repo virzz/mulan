@@ -26,14 +26,20 @@ type Info struct {
 	BuildAt string
 }
 
-type Service struct {
-	conf     *Config
+type WebService struct {
 	info     *Info
 	routerFn func(gin.IRouter)
 	engine   *gin.Engine
 	server   *http.Server
 	isBuild  bool
 }
+
+type Service struct {
+	conf *Config
+	*WebService
+}
+
+func (s *Service) Raw() any { return s.WebService }
 
 func (s *Service) Shutdown(ctx context.Context) error {
 	err := s.server.Shutdown(ctx)
@@ -73,7 +79,9 @@ var (
 )
 
 func New(conf *Config, info *Info, fn func(gin.IRouter)) *Service {
-	return &Service{conf: conf, info: info, routerFn: fn}
+	s := &Service{conf: conf}
+	s.WebService = &WebService{info: info, routerFn: fn}
+	return s
 }
 
 func (s *Service) Build() *Service {
