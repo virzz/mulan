@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -43,7 +44,7 @@ func (s *Service) Raw() any { return s.WebService }
 
 func (s *Service) Shutdown(ctx context.Context) error {
 	err := s.server.Shutdown(ctx)
-	if err != nil && err != http.ErrServerClosed {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
@@ -51,7 +52,7 @@ func (s *Service) Shutdown(ctx context.Context) error {
 
 func (s *Service) Close() error {
 	err := s.server.Close()
-	if err != nil && err != http.ErrServerClosed {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
@@ -66,10 +67,10 @@ func (s *Service) Serve() error {
 		s.Build()
 	}
 	zap.L().Info("HTTP Server Listening on",
-		zap.String("endpoint", s.conf.GetEndpoint()),
 		zap.String("host", s.conf.Host),
 		zap.Int("port", s.conf.Port),
 	)
+	// TODO: 更优雅的启动方式
 	return s.server.ListenAndServe()
 }
 
