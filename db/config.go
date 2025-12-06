@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -58,6 +57,13 @@ func (c *Config) String() string {
 		zap.L().Error("parse dsn fail:", zap.Error(err))
 		return ""
 	}
+	if dsnURL.Scheme == "sqlite3" {
+		if dsnURL.Host == ":memory:" {
+			return "file::memory:"
+		}
+		return filepath.Join(".", dsnURL.Host, dsnURL.Path)
+	}
+
 	_user := dsnURL.User.Username()
 	_pass, _ := dsnURL.User.Password()
 	if c.User != "" {
@@ -93,13 +99,6 @@ func (c *Config) String() string {
 		dsn = dsnURL.String()
 		dsn, _ = strings.CutPrefix(dsn, "mysql://")
 	case "postgres":
-	case "sqlite3":
-		fmt.Println("host", dsnURL.Host, "path", dsnURL.Path)
-		if dsnURL.Host == ":memory:" {
-			dsn = "file::memory:"
-		} else {
-			dsn = filepath.Join(".", dsnURL.Host, dsnURL.Path)
-		}
 	}
 	return dsn
 }
