@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log/slog"
-	"slices"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
@@ -86,9 +85,8 @@ func (app *App[T]) AddService(srvs ...service.Servicer) *App[T] {
 }
 
 func (app *App[T]) AddCommand(cmd ...*cobra.Command) *App[T] {
-	internalCmds := []string{"config", "version"}
 	for _, c := range cmd {
-		if slices.Contains(internalCmds, c.Use) {
+		if c.Use == "version" {
 			app.log.Warn("internal command cannot be added", zap.String("command", c.Use))
 			continue
 		}
@@ -101,7 +99,6 @@ func loadConfig[T any](app *App[T]) func(cmd *cobra.Command, args []string) (err
 	logger := app.log.Named("viper")
 	return func(cmd *cobra.Command, args []string) (err error) {
 		fs := cmd.Flags()
-		instance, _ := fs.GetString("instance")
 		configPath, _ := fs.GetString("config")
 		viper.SetOptions(
 			viper.WithLogger(
@@ -119,16 +116,17 @@ func loadConfig[T any](app *App[T]) func(cmd *cobra.Command, args []string) (err
 			configSource = "args"
 			viper.SetConfigFile(configPath)
 		} else if app.remote != nil {
-			app.remote.instance = instance
 			if err = viper.ReadRemoteConfig(); err == nil {
 				configSource = "remote"
 				configLoaded = true
 			}
 		}
-		if !configLoaded {
+		if viper.ConfigFileUsed() == "" {
 			viper.AddConfigPath(".")
-			viper.SetConfigName("config_" + instance)
+			viper.SetConfigName("config")
 			viper.SetConfigType("")
+		}
+		if !configLoaded {
 			if viper.ReadInConfig() == nil {
 				configSource = viper.ConfigFileUsed()
 			}
@@ -146,7 +144,6 @@ func loadConfig[T any](app *App[T]) func(cmd *cobra.Command, args []string) (err
 
 func (app *App[T]) Execute(ctx context.Context, action ...ActionFunc) (err error) {
 	// Config
-	app.rootCmd.PersistentFlags().StringP("instance", "i", "default", "instance name")
 	app.rootCmd.PersistentFlags().StringP("config", "c", "", "config file")
 	err = viper.BindPFlags(app.rootCmd.PersistentFlags())
 	if err != nil {

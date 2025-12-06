@@ -2,34 +2,15 @@ package app
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func (app *App[T]) internalCmd() {
 	app.rootCmd.AddCommand(
-		&cobra.Command{
-			Use:     "config json|yaml",
-			Aliases: []string{"c"},
-			Short:   "Show Config Template",
-			PreRunE: app.rootCmd.Root().PreRunE,
-			RunE: func(cmd *cobra.Command, args []string) error {
-				var buf []byte
-				if len(args) > 0 && (args[0] == "yaml" || args[0] == "yml") {
-					buf, _ = yaml.Marshal(app.conf)
-				} else {
-					buf, _ = json.MarshalIndent(app.conf, "", "  ")
-				}
-				fmt.Fprintln(os.Stdout, string(buf))
-				return nil
-			},
-		},
-
 		&cobra.Command{
 			Use:     "version",
 			Aliases: []string{"v"},
