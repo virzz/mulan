@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (app *App[T]) internalCmd() {
+func (app *App) internalCmd() {
 	app.rootCmd.AddCommand(
 		&cobra.Command{
 			Use:     "version",

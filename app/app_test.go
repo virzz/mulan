@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func testAction[T any](app *app.App[T]) func(cmd *cobra.Command, _ []string) error {
+func testAction(app *app.App) func(cmd *cobra.Command, _ []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()

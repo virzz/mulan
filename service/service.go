@@ -6,7 +6,7 @@ import (
 
 type Servicer interface {
 	Serve() error
-	Shutdown(ctx context.Context) error
+	Shutdown(context.Context) error
 	Close() error
 	Raw() any
 }

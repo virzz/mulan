@@ -29,24 +29,25 @@ type (
 		Commit      string
 		BuildAt     string
 	}
-	App[T any] struct {
+	App struct {
 		*Meta
+		debug   int
 		rootCmd *cobra.Command
 		preInit PreInitFunc
 		log     *zap.Logger
 		remote  *Remote
-		conf    *T
+		conf    any
 		srvs    []service.Servicer
 	}
 )
 
 var replacer = strings.NewReplacer(".", "__", "-", "__")
 
-func New[T any](meta *Meta, cfg *T) *App[T] {
+func New(meta *Meta, cfg any) *App {
 	_ = godotenv.Load()
 	zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
 
-	std := &App[T]{
+	std := &App{
 		Meta: meta,
 		conf: cfg,
 		log:  zap.L(),
@@ -66,12 +67,12 @@ func New[T any](meta *Meta, cfg *T) *App[T] {
 	return std
 }
 
-func (app *App[T]) SetPreInit(f PreInitFunc) *App[T]  { app.preInit = f; return app }
-func (app *App[T]) SetLogger(log *zap.Logger) *App[T] { app.log = log; return app }
-func (app *App[T]) RootCmd() *cobra.Command           { return app.rootCmd }
-func (app *App[T]) Conf() *T                          { return app.conf }
+func (app *App) SetPreInit(f PreInitFunc) *App  { app.preInit = f; return app }
+func (app *App) SetLogger(log *zap.Logger) *App { app.log = log; return app }
+func (app *App) RootCmd() *cobra.Command        { return app.rootCmd }
+func (app *App) Conf() any                      { return app.conf }
 
-func (app *App[T]) AddFlagSet(fs ...*pflag.FlagSet) *App[T] {
+func (app *App) AddFlagSet(fs ...*pflag.FlagSet) *App {
 	flags := app.rootCmd.Flags()
 	for _, f := range fs {
 		flags.AddFlagSet(f)
@@ -79,12 +80,12 @@ func (app *App[T]) AddFlagSet(fs ...*pflag.FlagSet) *App[T] {
 	return app
 }
 
-func (app *App[T]) AddService(srvs ...service.Servicer) *App[T] {
+func (app *App) AddService(srvs ...service.Servicer) *App {
 	app.srvs = append(app.srvs, srvs...)
 	return app
 }
 
-func (app *App[T]) AddCommand(cmd ...*cobra.Command) *App[T] {
+func (app *App) AddCommand(cmd ...*cobra.Command) *App {
 	for _, c := range cmd {
 		if c.Use == "version" {
 			app.log.Warn("internal command cannot be added", zap.String("command", c.Use))
@@ -95,21 +96,13 @@ func (app *App[T]) AddCommand(cmd ...*cobra.Command) *App[T] {
 	return app
 }
 
-func loadConfig[T any](app *App[T]) func(cmd *cobra.Command, args []string) (err error) {
-	logger := app.log.Named("viper")
+func loadConfig(app *App) func(cmd *cobra.Command, args []string) (err error) {
 	return func(cmd *cobra.Command, args []string) (err error) {
 		fs := cmd.Flags()
 		configPath, _ := fs.GetString("config")
-		viper.SetOptions(
-			viper.WithLogger(
-				slog.New(
-					slogzap.Option{
-						Level:  slog.LevelWarn,
-						Logger: logger,
-					}.NewZapHandler(),
-				),
-			),
-		)
+		viper.SetOptions(viper.WithLogger(slog.New(
+			slogzap.Option{Level: slog.LevelWarn, Logger: app.log}.NewZapHandler(),
+		)))
 		configLoaded := false
 		configSource := "env"
 		if configPath != "" {
@@ -134,17 +127,18 @@ func loadConfig[T any](app *App[T]) func(cmd *cobra.Command, args []string) (err
 		// Viper config unmarshal to app.conf
 		err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
 		if err != nil {
-			logger.Error("Failed to unmarshal config", zap.Error(err))
+			app.log.Error("Failed to unmarshal config", zap.Error(err))
 			return err
 		}
-		logger.Info("Config loaded from", zap.String("source", configSource))
+		app.log.Info("Config loaded from", zap.String("source", configSource))
 		return nil
 	}
 }
 
-func (app *App[T]) Execute(ctx context.Context, action ...ActionFunc) (err error) {
+func (app *App) Execute(ctx context.Context, action ...ActionFunc) (err error) {
 	// Config
 	app.rootCmd.PersistentFlags().StringP("config", "c", "", "config file")
+	app.rootCmd.PersistentFlags().CountVarP(&app.debug, "debug", "d", "debug mode")
 	err = viper.BindPFlags(app.rootCmd.PersistentFlags())
 	if err != nil {
 		return err
@@ -175,5 +169,14 @@ func (app *App[T]) Execute(ctx context.Context, action ...ActionFunc) (err error
 		}
 		return currentAction(cmd, args)
 	}
+	app.log.Info("App Info",
+		zap.String("id", app.ID),
+		zap.String("name", app.Name),
+		zap.String("cn_name", app.CNName),
+		zap.String("description", app.Description),
+		zap.String("version", app.Version),
+		zap.String("commit", app.Commit),
+		zap.String("build_at", app.BuildAt),
+	)
 	return app.rootCmd.ExecuteContext(ctx)
 }

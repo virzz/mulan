@@ -66,12 +66,24 @@ func (s *Service) Serve() error {
 	if !s.isBuild {
 		s.Build()
 	}
-	zap.L().Info("HTTP Server Listening on",
-		zap.String("host", s.conf.Host),
-		zap.Int("port", s.conf.Port),
-	)
-	// TODO: 更优雅的启动方式
-	return s.server.ListenAndServe()
+	errCh := make(chan error, 1)
+	go func() {
+		err := s.server.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			err = nil
+		}
+		errCh <- err
+	}()
+	select {
+	case err := <-errCh:
+		return err
+	case <-time.After(3 * time.Second):
+		zap.L().Info("HTTP Server Listening on",
+			zap.String("host", s.conf.Host),
+			zap.Int("port", s.conf.Port),
+		)
+		return nil
+	}
 }
 
 var (
@@ -80,9 +92,7 @@ var (
 )
 
 func New(conf *Config, info *Info, fn func(gin.IRouter)) *Service {
-	s := &Service{conf: conf}
-	s.WebService = &WebService{info: info, routerFn: fn}
-	return s
+	return &Service{conf: conf, WebService: &WebService{info: info, routerFn: fn}}
 }
 
 func (s *Service) Build() *Service {
