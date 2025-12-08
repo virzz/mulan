@@ -8,5 +8,4 @@ type Servicer interface {
 	Serve() error
 	Shutdown(context.Context) error
 	Close() error
-	Raw() any
 }
