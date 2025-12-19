@@ -28,12 +28,8 @@ func DefaultConfig() *gorm.Config {
 }
 
 func New(dialector gorm.Dialector, conn *ConnConfig, opts ...gorm.Option) (*gorm.DB, error) {
-	gormCfg := DefaultConfig()
-	for _, opt := range opts {
-		opt.Apply(gormCfg)
-	}
 	// Open
-	db, err := gorm.Open(dialector, gormCfg)
+	db, err := gorm.Open(dialector, append(opts, DefaultConfig())...)
 	if err != nil {
 		zap.L().Error("Failed to open db", zap.String("name", dialector.Name()), zap.Error(err))
 		return nil, err
