@@ -27,7 +27,7 @@ func TestNewDB_MySQL(t *testing.T) {
 	})
 	_, err := db.New(
 		dialector,
-		cfg.Conn,
+		&cfg,
 		&gorm.Config{
 			Logger: db.NewLogger(cfg.Debug),
 		},
@@ -50,7 +50,7 @@ func TestNewDB_PgSQL(t *testing.T) {
 	})
 	_, err := db.New(
 		dialector,
-		cfg.Conn,
+		&cfg,
 		&gorm.Config{
 			Logger: db.NewLogger(cfg.Debug),
 		},
@@ -72,7 +72,7 @@ func TestNewDB_SQLiteMemory(t *testing.T) {
 	dialector := sqlite.Open(dsn)
 	_, err := db.New(
 		dialector,
-		cfg.Conn,
+		&cfg,
 		&gorm.Config{
 			Logger: db.NewLogger(cfg.Debug),
 		},
@@ -95,7 +95,7 @@ func TestNewDB_SQLiteFile(t *testing.T) {
 			cfg := db.Config{DSN: dsn}
 			_, err := db.New(
 				sqlite.Open(cfg.String()),
-				cfg.Conn,
+				&cfg,
 				&gorm.Config{
 					Logger: db.NewLogger(cfg.Debug),
 				},

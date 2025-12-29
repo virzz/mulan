@@ -27,7 +27,7 @@ func DefaultConfig() *gorm.Config {
 	}
 }
 
-func New(dialector gorm.Dialector, conn *ConnConfig, opts ...gorm.Option) (*gorm.DB, error) {
+func New(dialector gorm.Dialector, cfg *Config, opts ...gorm.Option) (*gorm.DB, error) {
 	// Open
 	db, err := gorm.Open(dialector, append(opts, DefaultConfig())...)
 	if err != nil {
@@ -35,15 +35,18 @@ func New(dialector gorm.Dialector, conn *ConnConfig, opts ...gorm.Option) (*gorm
 		return nil, err
 	}
 	// sql.DB Config
-	if conn != nil {
+	if cfg.Conn != nil {
 		sqlDB, err := db.DB()
 		if err != nil {
 			zap.L().Warn("Failed to get sql.db", zap.Error(err))
 		} else {
-			sqlDB.SetMaxIdleConns(conn.Idle)                                     // 最大空闲连接
-			sqlDB.SetMaxOpenConns(conn.Open)                                     // 最大连接数
-			sqlDB.SetConnMaxLifetime(time.Duration(conn.Lifetime) * time.Second) // 最大可复用时间
+			sqlDB.SetMaxIdleConns(cfg.Conn.Idle)                                     // 最大空闲连接
+			sqlDB.SetMaxOpenConns(cfg.Conn.Open)                                     // 最大连接数
+			sqlDB.SetConnMaxLifetime(time.Duration(cfg.Conn.Lifetime) * time.Second) // 最大可复用时间
 		}
+	}
+	if cfg.Debug {
+		db = db.Debug()
 	}
 	return db, nil
 }
