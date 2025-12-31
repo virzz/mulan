@@ -18,6 +18,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// 默认超时配置
+const (
+	defaultReadTimeout    = 30 * time.Second
+	defaultWriteTimeout   = 30 * time.Second
+	defaultIdleTimeout    = 120 * time.Second
+	defaultReadHeaderTime = 10 * time.Second
+	defaultMaxHeaderBytes = 1 << 20 // 1MB
+)
+
 var _ service.Servicer = (*Service)(nil)
 
 type Info struct {
@@ -151,7 +160,16 @@ func (s *Service) Build() *Service {
 		api := s.engine.Group(s.conf.Prefix)
 		s.routerFn(api)
 	}
-	s.server = &http.Server{Addr: s.conf.Addr(), Handler: s.engine}
+	// 配置 HTTP Server 超时防止慢速连接攻击
+	s.server = &http.Server{
+		Addr:              s.conf.Addr(),
+		Handler:           s.engine,
+		ReadTimeout:       defaultReadTimeout,
+		WriteTimeout:      defaultWriteTimeout,
+		IdleTimeout:       defaultIdleTimeout,
+		ReadHeaderTimeout: defaultReadHeaderTime,
+		MaxHeaderBytes:    defaultMaxHeaderBytes,
+	}
 	s.isBuild = true
 	return s
 }

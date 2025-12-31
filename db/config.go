@@ -54,7 +54,7 @@ func (c *Config) WithArgs(k, v string) *Config {
 func (c *Config) String() string {
 	dsnURL, err := url.Parse(c.DSN)
 	if err != nil {
-		zap.L().Error("parse dsn fail:", zap.Error(err))
+		zap.L().Error("parse dsn fail", zap.Error(err))
 		return ""
 	}
 	if dsnURL.Scheme == "sqlite3" {
