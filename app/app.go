@@ -2,12 +2,10 @@ package app
 
 import (
 	"context"
-	"log/slog"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/joho/godotenv"
-	slogzap "github.com/samber/slog-zap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -15,6 +13,8 @@ import (
 
 	"github.com/virzz/mulan/service"
 )
+
+func UnmarshalConfigOpt(dc *mapstructure.DecoderConfig) { dc.TagName = "json" }
 
 type (
 	ActionFunc  func(cmd *cobra.Command, args []string) error
@@ -35,7 +35,6 @@ type (
 		rootCmd *cobra.Command
 		preInit PreInitFunc
 		log     *zap.Logger
-		remote  *Remote
 		conf    any
 		srvs    []service.Servicer
 	}
@@ -72,14 +71,6 @@ func (app *App) SetLogger(log *zap.Logger) *App { app.log = log; return app }
 func (app *App) RootCmd() *cobra.Command        { return app.rootCmd }
 func (app *App) Conf() any                      { return app.conf }
 
-func (app *App) AddFlagSet(fs ...*pflag.FlagSet) *App {
-	flags := app.rootCmd.Flags()
-	for _, f := range fs {
-		flags.AddFlagSet(f)
-	}
-	return app
-}
-
 func (app *App) AddService(srvs ...service.Servicer) *App {
 	app.srvs = append(app.srvs, srvs...)
 	return app
@@ -96,36 +87,42 @@ func (app *App) AddCommand(cmd ...*cobra.Command) *App {
 	return app
 }
 
+// AddFlagSet 添加 FlagSet 到 rootCmd，可选绑定到 viper
+func (app *App) AddFlagSet(fs ...*pflag.FlagSet) *App {
+	flags := app.rootCmd.Flags()
+	for _, f := range fs {
+		flags.AddFlagSet(f)
+	}
+	return app
+}
+
+// BindFlags 绑定 rootCmd 的 flags 到 viper（可选调用）
+func (app *App) BindFlags() *App {
+	_ = viper.BindPFlags(app.rootCmd.PersistentFlags())
+	_ = viper.BindPFlags(app.rootCmd.Flags())
+	return app
+}
+
 func loadConfig(app *App) func(cmd *cobra.Command, args []string) (err error) {
 	return func(cmd *cobra.Command, args []string) (err error) {
 		fs := cmd.Flags()
 		configPath, _ := fs.GetString("config")
-		viper.SetOptions(viper.WithLogger(slog.New(
-			slogzap.Option{Level: slog.LevelWarn, Logger: app.log}.NewZapHandler(),
-		)))
-		configLoaded := false
 		configSource := "env"
 		if configPath != "" {
 			configSource = "args"
 			viper.SetConfigFile(configPath)
-		} else if app.remote != nil {
-			if err = viper.ReadRemoteConfig(); err == nil {
-				configSource = "remote"
-				configLoaded = true
-			}
-		}
-		if viper.ConfigFileUsed() == "" {
+		} else {
 			viper.AddConfigPath(".")
 			viper.SetConfigName("config")
 			viper.SetConfigType("")
 		}
-		if !configLoaded {
-			if viper.ReadInConfig() == nil {
-				configSource = viper.ConfigFileUsed()
-			}
+		err = viper.ReadInConfig()
+		if err != nil {
+			app.log.Warn("Failed to read config", zap.String("source", viper.ConfigFileUsed()), zap.Error(err))
+			configSource = ""
 		}
 		// Viper config unmarshal to app.conf
-		err = viper.Unmarshal(app.conf, func(dc *mapstructure.DecoderConfig) { dc.TagName = "json" })
+		err = app.UnmarshalConfig(app.conf)
 		if err != nil {
 			app.log.Error("Failed to unmarshal config", zap.Error(err))
 			return err
@@ -135,22 +132,23 @@ func loadConfig(app *App) func(cmd *cobra.Command, args []string) (err error) {
 	}
 }
 
+func (app *App) UnmarshalConfig(cfg any) error {
+	return viper.Unmarshal(cfg, UnmarshalConfigOpt)
+}
+
 func (app *App) Execute(ctx context.Context, action ...ActionFunc) (err error) {
-	// Config
-	app.rootCmd.PersistentFlags().StringP("config", "c", "", "config file")
-	app.rootCmd.PersistentFlags().CountVarP(&app.debug, "debug", "d", "debug mode")
-	err = viper.BindPFlags(app.rootCmd.PersistentFlags())
-	if err != nil {
-		return err
-	}
-	err = viper.BindPFlags(app.rootCmd.Flags())
-	if err != nil {
-		return err
-	}
+	// 添加内置 flags
+	flags := pflag.NewFlagSet("app", pflag.ContinueOnError)
+	flags.StringP("config", "c", "", "config file")
+	flags.CountVarP(&app.debug, "debug", "d", "debug mode")
+	_ = viper.BindPFlags(flags)
+	app.rootCmd.PersistentFlags().AddFlagSet(flags)
+
 	viper.SetEnvPrefix(app.Name)
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
+	// 加载配置
 	app.rootCmd.PreRunE = loadConfig(app)
 
 	// Action
