@@ -65,6 +65,9 @@ func Bind(c *gin.Context, obj any) (err error) {
 	if err != nil {
 		return c.Error(err)
 	}
+	if err := ApplyDefaults(obj); err != nil {
+		return c.Error(err)
+	}
 	return binding.Validator.ValidateStruct(obj)
 }
 
@@ -84,6 +87,9 @@ func ShouldBind(c *gin.Context, obj any) error {
 	_ = binding.Default(c.Request.Method, c.ContentType()).Bind(c.Request, obj)
 	// Bind Query (忽略错误，允许无 query)
 	_ = binding.Query.Bind(c.Request, obj)
+	if err := ApplyDefaults(obj); err != nil {
+		return err
+	}
 	// 只返回验证错误
 	return binding.Validator.ValidateStruct(obj)
 }

@@ -2,6 +2,7 @@ package req_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,6 +35,60 @@ func TestBind(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, r)
 	t.Log(w.Body.String())
+}
+
+type pageReq struct {
+	Page int `form:"page" json:"page" default:"7"`
+	Size int `form:"size" json:"size" default:"20"`
+}
+
+func TestBindDefaultTag(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/list", func(c *gin.Context) {
+		var obj pageReq
+		if err := req.Bind(c, &obj); err != nil {
+			c.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, obj)
+	})
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/list", nil)
+	router.ServeHTTP(w, r)
+	if w.Code != 200 {
+		t.Fatalf("status %d, body %s", w.Code, w.Body.String())
+	}
+	var got pageReq
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Page != 7 || got.Size != 20 {
+		t.Fatalf("defaults not applied: %+v", got)
+	}
+}
+
+func TestBindDefaultTagPartialQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/list", func(c *gin.Context) {
+		var obj pageReq
+		if err := req.Bind(c, &obj); err != nil {
+			c.AbortWithStatusJSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, obj)
+	})
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/list?page=3", nil)
+	router.ServeHTTP(w, r)
+	var got pageReq
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Page != 3 || got.Size != 20 {
+		t.Fatalf("expected Page=3 Size=20, got %+v", got)
+	}
 }
 
 func BenchmarkBind(b *testing.B) {
