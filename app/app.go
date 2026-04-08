@@ -40,8 +40,6 @@ type (
 	}
 )
 
-var replacer = strings.NewReplacer(".", "__", "-", "__")
-
 func New(meta *Meta, cfg any) *App {
 	_ = godotenv.Load()
 	zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
@@ -95,6 +93,8 @@ func (app *App) AddFlagSet(fs ...*pflag.FlagSet) *App {
 	}
 	return app
 }
+
+var replacer = strings.NewReplacer(".", "_", "-", "_")
 
 // BindFlags 绑定 rootCmd 的 flags 到 viper（可选调用）
 func (app *App) BindFlags() *App {
