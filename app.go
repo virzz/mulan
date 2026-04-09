@@ -9,8 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/virzz/mulan/service"
 	"go.uber.org/zap"
+
+	"github.com/virzz/mulan/service"
 )
 
 func UnmarshalConfigOpt(dc *mapstructure.DecoderConfig) { dc.TagName = "json" }
