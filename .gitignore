@@ -184,6 +184,5 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,git,dotenv,macos,goland+all
 
-# SpecStory explanation file
-.specstory/.what-is-this.md
 _*
+.*

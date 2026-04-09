@@ -1,4 +1,4 @@
-package app
+package mulan
 
 import (
 	"bytes"
@@ -31,24 +31,30 @@ func (app *App) internalCmd() {
 				}
 				buf := bytes.NewBuffer(nil)
 				buf.WriteString(app.Name)
-				if app.ID != "" {
-					buf.WriteString("(")
-					buf.WriteString(app.ID)
-					buf.WriteString(")")
+				buf.WriteByte('\n')
+				if app.CNName != "" {
+					buf.WriteString(app.CNName)
+					buf.WriteByte('\n')
 				}
-				buf.WriteString(" - ")
-				buf.WriteString(app.Version)
+				if app.ID != "" {
+					buf.WriteString(app.ID)
+					buf.WriteByte('\n')
+				}
+				if app.Version != "" {
+					buf.WriteString(app.Version)
+					buf.WriteByte('\n')
+				}
 				if app.Commit != "" {
-					buf.WriteString("-")
 					buf.WriteString(app.Commit)
+					buf.WriteByte('\n')
 				}
 				if app.BuildAt != "" {
-					buf.WriteString("-")
 					buf.WriteString(app.BuildAt)
+					buf.WriteByte('\n')
 				}
 				if app.Description != "" {
-					buf.WriteString(" - ")
 					buf.WriteString(app.Description)
+					buf.WriteByte('\n')
 				}
 				fmt.Fprintln(os.Stdout, buf.String())
 			},

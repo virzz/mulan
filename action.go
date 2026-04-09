@@ -1,4 +1,4 @@
-package app
+package mulan
 
 import (
 	"context"

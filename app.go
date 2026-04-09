@@ -1,4 +1,4 @@
-package app
+package mulan
 
 import (
 	"context"
@@ -9,9 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
-
 	"github.com/virzz/mulan/service"
+	"go.uber.org/zap"
 )
 
 func UnmarshalConfigOpt(dc *mapstructure.DecoderConfig) { dc.TagName = "json" }
@@ -94,8 +93,6 @@ func (app *App) AddFlagSet(fs ...*pflag.FlagSet) *App {
 	return app
 }
 
-var replacer = strings.NewReplacer(".", "_", "-", "_")
-
 // BindFlags 绑定 rootCmd 的 flags 到 viper（可选调用）
 func (app *App) BindFlags() *App {
 	_ = viper.BindPFlags(app.rootCmd.PersistentFlags())
@@ -145,7 +142,7 @@ func (app *App) Execute(ctx context.Context, action ...ActionFunc) (err error) {
 	app.rootCmd.PersistentFlags().AddFlagSet(flags)
 
 	viper.SetEnvPrefix(app.Name)
-	viper.SetEnvKeyReplacer(replacer)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
 	// 加载配置
@@ -167,14 +164,6 @@ func (app *App) Execute(ctx context.Context, action ...ActionFunc) (err error) {
 		}
 		return currentAction(cmd, args)
 	}
-	app.log.Info("App Info",
-		zap.String("id", app.ID),
-		zap.String("name", app.Name),
-		zap.String("cn_name", app.CNName),
-		zap.String("description", app.Description),
-		zap.String("version", app.Version),
-		zap.String("commit", app.Commit),
-		zap.String("build_at", app.BuildAt),
-	)
+
 	return app.rootCmd.ExecuteContext(ctx)
 }

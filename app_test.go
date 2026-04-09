@@ -1,4 +1,4 @@
-package app_test
+package mulan_test
 
 import (
 	"context"
@@ -11,12 +11,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
-	"github.com/virzz/mulan/app"
-	"github.com/virzz/mulan/web"
 	"go.uber.org/zap"
+
+	"github.com/virzz/mulan"
 )
 
-func testAction(app *app.App) func(cmd *cobra.Command, _ []string) error {
+func testAction(app *mulan.App) func(cmd *cobra.Command, _ []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
@@ -52,7 +52,7 @@ func testAction(app *app.App) func(cmd *cobra.Command, _ []string) error {
 
 func TestApp(t *testing.T) {
 	Conf = &Config{}
-	meta := &app.Meta{
+	meta := &mulan.Meta{
 		ID:          "com.virzz.mulan.example",
 		Name:        "example",
 		Description: "ExampleService",
@@ -60,18 +60,14 @@ func TestApp(t *testing.T) {
 		Commit:      Commit,
 		BuildAt:     BuildAt,
 	}
-	std := app.New(meta, Conf)
+	std := mulan.New(meta, Conf)
 
-	webSrv := web.New(
-		&Conf.HTTP,
-		&web.Info{Name: meta.Name, Version: meta.Version, Commit: meta.Commit},
-		func(api gin.IRouter) {
-			api.Handle("GET", "/", func(c *gin.Context) {
-				c.String(200, "Hello, World!")
-			})
-		},
-	)
-
+	routerFunc := func(api gin.IRouter) {
+		api.Handle("GET", "/", func(c *gin.Context) {
+			c.String(200, "Hello, World!")
+		})
+	}
+	webSrv := NewWebService(&Conf.Web, routerFunc)
 	std.AddService(webSrv)
 
 	if err := std.Execute(context.Background(), testAction(std)); err != nil {
