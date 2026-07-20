@@ -37,6 +37,8 @@ type (
 		log     *zap.Logger
 		conf    any
 		srvs    []service.Servicer
+
+		versionCmd *cobra.Command
 	}
 )
 
