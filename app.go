@@ -44,7 +44,7 @@ type (
 
 func New(meta *Meta, cfg any) *App {
 	_ = godotenv.Load()
-	zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
+	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 
 	std := &App{
 		Meta: meta,
