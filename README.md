@@ -1,5 +1,11 @@
 # Mulan 木兰
 
+> [!IMPORTANT]
+> 本项目已迁移至 [mulan-go/mulan](https://github.com/mulan-go/mulan/tree/main/app)，当前仓库已停止维护并归档为只读。
+>
+> 新模块路径：`github.com/mulan-go/mulan/app`。请在新仓库提交 Issue、Pull Request，并使用 `app/vX.Y.Z` 标签获取后续版本。
+
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/virzz/mulan)](https://goreportcard.com/report/github.com/virzz/mulan)
 [![GoDoc](https://godoc.org/github.com/virzz/mulan?status.svg)](https://godoc.org/github.com/virzz/mulan)
 [![License](https://img.shields.io/github/license/virzz/mulan.svg)](https://github.com/virzz/mulan/blob/main/LICENSE)
